@@ -1,0 +1,469 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Dashboard Monitoring Distribusi BBM. Pantau pengiriman, stok depot, armada, dan SPBU dalam satu dashboard operasional.">
+<meta name="robots" content="index,follow">
+<title>Arus BBM | Dashboard Monitoring Distribusi BBM</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet">
+<script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.9/dist/chart.umd.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
+<style>
+:root{color-scheme:light;--nav:#0B1F3A;--nav2:#132f50;--navtext:#adbed4;--orange:#FF7A1A;--orangeink:#8a3a06;--white:#fff;--surface:#fff;--bg:#f0f4f8;--soft:#f6f8fb;--ink:#13243a;--muted:#52657a;--line:#dce5ef;--blue:#2860a2;--bluebg:#e8f1ff;--green:#087450;--greenbg:#def6ed;--red:#a81f37;--redbg:#ffe9ee;--amberbg:#fff0df;--chart2:#ef8b43;--chart3:#258b85;--chart4:#8264bb;--water:#e9f3fb;--land:#c7dbe7;--shadow:0 8px 26px #0b1f3a0d;--radius:16px;--font:Inter,system-ui,sans-serif;--display:Poppins,var(--font)}
+:root[data-theme=dark]{color-scheme:dark;--surface:#142640;--bg:#0d192b;--soft:#192e49;--ink:#edf3fc;--muted:#aec0d5;--line:#30455e;--blue:#8cbbff;--bluebg:#213957;--green:#82e2bc;--greenbg:#183f3b;--red:#ff9ead;--redbg:#492a3a;--amberbg:#4c3528;--orangeink:#ffbb87;--water:#142f4d;--land:#345873;--shadow:0 8px 26px #0003}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px var(--font);min-width:300px}h1,h2,h3,p{margin:0}h1,h2,h3,.brand{font-family:var(--display)}h1{font-size:clamp(26px,3.2vw,43px);line-height:1.16;letter-spacing:-.045em}h2{font-size:17px;letter-spacing:-.025em}h3{font-size:15px}p{line-height:1.55}a{color:var(--blue)}button,input,select{font:inherit}button,select,summary{cursor:pointer}button,input,select{border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:9px;padding:9px 11px}button:hover{border-color:var(--blue)}button:disabled{opacity:.5;cursor:default}button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid var(--orange);outline-offset:2px}[hidden]{display:none!important}.primary{background:var(--orange);color:var(--nav);border-color:var(--orange);font-weight:800}.primary:hover{border-color:var(--nav)}.quiet{color:var(--muted);font-size:12px}.icon{width:19px;height:19px;flex:none;vertical-align:middle}.mark{width:37px;height:37px;border-radius:11px;background:var(--orange);display:grid;place-items:center;flex:none}.mark img{width:24px;height:24px}.brand{display:flex;align-items:center;gap:11px;font-size:19px;font-weight:700;white-space:nowrap}.brand small{display:block;font:10px var(--font);letter-spacing:.1em;text-transform:uppercase;margin-top:2px;opacity:.77}.badge{border-radius:100px;padding:5px 8px;font-size:11px;font-weight:700;display:inline-block;white-space:nowrap;background:var(--bluebg);color:var(--blue)}.ok{background:var(--greenbg);color:var(--green)}.bad{background:var(--redbg);color:var(--red)}.warm{background:var(--amberbg);color:var(--orangeink)}.tag{font-size:11px;text-transform:uppercase;letter-spacing:.15em;font-weight:800}.login{display:grid;grid-template-columns:1.12fr 1fr;min-height:100svh;background:var(--surface)}.login-visual{display:flex;flex-direction:column;justify-content:space-between;min-height:500px;color:var(--white);padding:clamp(24px,5vw,76px);background-color:var(--nav);background-image:linear-gradient(150deg,#0b1f3ae0,#0b1f3a45 55%,#0b1f3a),var(--login-image);background-position:center;background-size:cover}.login-visual h1{font-size:clamp(34px,5.4vw,77px);max-width:680px;margin:16px 0}.login-visual p{max-width:430px;color:var(--navtext);font-size:15px}.login-content{display:grid;place-items:center;position:relative;padding:55px 30px}.login-form{width:min(100%,400px);display:grid;gap:17px}.login-form h2{font-size:34px}.login-form label{display:grid;gap:7px;font-weight:600}.login-form input:not([type=checkbox]){width:100%;min-height:45px}.theme-login{position:absolute;right:22px;top:20px}.password{display:flex;gap:6px}.login-extra,.row{display:flex;align-items:center;justify-content:space-between;gap:12px}.login-extra label{display:flex;align-items:center;flex-direction:row}.link{background:none;border:0;padding:0;color:var(--blue);text-decoration:underline}.message{color:var(--red);min-height:18px;font-size:13px}.spinner{display:inline-block;width:15px;height:15px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;vertical-align:middle;animation:spin .7s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}@keyframes fade{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:none}}
+.app{display:grid;grid-template-columns:225px minmax(0,1fr);min-height:100svh}.app.collapsed{grid-template-columns:68px minmax(0,1fr)}aside{background:var(--nav);color:var(--white);position:sticky;top:0;height:100svh;padding:22px 13px;display:flex;flex-direction:column;gap:22px;z-index:9}aside .brand{padding-left:4px}.aside-label{margin:3px 10px 6px;color:var(--navtext)}nav{display:grid;gap:5px}nav button{background:none;color:var(--navtext);border:0;display:flex;align-items:center;gap:11px;text-align:left;padding:12px;white-space:nowrap;font-weight:600}nav button:hover,nav button[aria-current=page]{background:var(--nav2);color:var(--white)}nav button[aria-current=page]{box-shadow:inset 3px 0 var(--orange)}.aside-bottom{margin-top:auto;border-top:1px solid var(--nav2);padding:13px 5px;color:var(--navtext);font-size:11px}.collapsed aside .nav-label,.collapsed aside .brand-text,.collapsed aside .aside-label,.collapsed .aside-bottom{display:none}.top{position:sticky;top:0;z-index:7;background:var(--surface);border-bottom:1px solid var(--line);padding:13px clamp(12px,2.2vw,29px);display:flex;align-items:center;gap:10px}.top .top-title{font-weight:800;margin-right:auto;white-space:nowrap}.top input{width:clamp(110px,17vw,230px)}.top details{position:relative}.top summary{display:flex;align-items:center;gap:6px;list-style:none;padding:6px;border-radius:9px}.top summary::-webkit-details-marker{display:none}.profile img{width:30px;height:30px;border-radius:50%;background:var(--nav2)}.popover{position:absolute;right:0;top:calc(100% + 10px);min-width:205px;max-width:88vw;width:max-content;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px;box-shadow:var(--shadow);display:grid;gap:7px}.popover button{text-align:left}.bell{position:relative}.bell b{position:absolute;top:-3px;right:-4px;border-radius:99px;background:var(--red);color:var(--surface);font-size:9px;padding:2px 4px}.content{padding:23px clamp(12px,2.3vw,30px) 32px;max-width:1660px;margin:auto}.fade{animation:fade .26s ease both}.hero{background:var(--nav);color:var(--white);padding:clamp(19px,3vw,34px);border-radius:19px;position:relative;overflow:hidden;margin-bottom:17px;background-image:radial-gradient(ellipse at 88% 12%,#284b75,transparent 60%)}.hero::after{content:"";position:absolute;right:-56px;top:-135px;width:330px;height:330px;border:1px solid #ffffff27;border-radius:50%;box-shadow:0 0 0 24px #ffffff0c,0 0 0 49px #ffffff0c;pointer-events:none}.hero .tag{color:#ffae73}.hero h1{margin:8px 0}.hero p{color:var(--navtext)}.hero .row{position:relative;z-index:1}.hero .badge{align-self:flex-start}.kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-bottom:15px}.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:15px;min-width:0}.kpi{transition:transform .18s,box-shadow .18s}.kpi:hover{transform:translateY(-3px)}.kpi-icon{display:grid;place-items:center;width:34px;height:34px;border-radius:9px;background:var(--bluebg);color:var(--blue)}.kpi:last-child .kpi-icon{background:var(--redbg);color:var(--red)}.kpi h2{font:700 12px var(--font);color:var(--muted);margin:12px 0 5px}.kpi strong{font:700 clamp(20px,2.65vw,32px) var(--display);letter-spacing:-.045em;white-space:nowrap}.unit{font-size:11px;color:var(--muted);margin-left:4px}.kpi p{min-height:31px;margin-top:4px}.grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:14px;margin-bottom:14px}.grid-even{grid-template-columns:repeat(2,minmax(0,1fr))}.chart{height:245px;position:relative;margin-top:13px}.chart-note{margin-top:9px}.progress-row{margin-top:13px}.track{height:8px;border-radius:10px;background:var(--soft);overflow:hidden;margin-top:7px}.track span{display:block;height:100%;background:var(--blue);border-radius:10px}.track span.low{background:var(--red)}.map{position:relative;aspect-ratio:2.4;min-height:155px;background:var(--water);border-radius:11px;overflow:hidden;margin:12px 0}.map svg,.map img{width:100%;height:100%;position:absolute;inset:0;object-fit:fill}.pin{position:absolute;transform:translate(-50%,-50%);border:2px solid var(--white);border-radius:50%;background:var(--blue);padding:0;width:17px;height:17px}.pin.spbu{background:var(--orange);width:12px;height:12px}.pin:hover,.pin:focus-visible{z-index:2}.list{list-style:none;padding:0;margin:10px 0 0;display:grid;gap:8px}.list li{background:var(--soft);padding:10px;border-radius:8px}.list button{width:100%;text-align:left}.list p{margin-top:4px}.timeline li{border-left:3px solid var(--chart2)}.table-card{margin-bottom:14px}.table-tools{display:flex;gap:7px;flex-wrap:wrap;margin:13px 0}.table-tools input{min-width:130px;flex:1}.scroll{overflow:auto}table{width:100%;border-collapse:collapse;text-align:left;white-space:nowrap}th,td{padding:10px 9px;border-bottom:1px solid var(--line)}th{color:var(--muted);font-size:12px;background:var(--soft)}th button{border:0;background:none;padding:0;font-weight:700;color:inherit}td:first-child{font-weight:700}td button{padding:5px 8px}.pager{margin-top:12px;flex-wrap:wrap}.footer{padding:18px 4px 2px;display:flex;justify-content:space-between;gap:15px;flex-wrap:wrap;border-top:1px solid var(--line)}.footer .brand{font-size:15px}.footer .mark{width:28px;height:28px}.footer .mark img{width:17px}.footer-links{display:flex;gap:11px;flex-wrap:wrap;margin-top:6px}.cards-view{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(210px,100%),1fr));gap:12px;margin-bottom:15px}.cards-view p{margin:7px 0}.page-title{margin-bottom:14px}.page-title h1{font-size:31px;margin-bottom:6px}dialog{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:15px;padding:20px;width:min(430px,calc(100% - 28px));box-shadow:var(--shadow)}dialog::backdrop{background:#07172db8}dialog form,.modal-body{display:grid;gap:11px}dialog p{margin:4px 0}dialog input,dialog select{width:100%;margin-top:4px}.overlay{display:none}.sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+@media(max-width:1110px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.app{grid-template-columns:188px minmax(0,1fr)}}
+@media(max-width:800px){.app,.app.collapsed{display:block}aside{position:fixed;left:0;top:0;width:225px;transform:translateX(-100%);visibility:hidden;transition:transform .2s,visibility .2s}.mobile-open aside{transform:none;visibility:visible}.mobile-open .overlay{display:block;position:fixed;inset:0;background:#07172d88;border:0;z-index:8}.top{flex-wrap:wrap}.top input{flex:1;width:0;min-width:105px}.top .profile span{display:none}.login{grid-template-columns:1fr 1fr}.login-visual{padding:24px}}
+@media(max-width:570px){.login{display:block}.login-visual{min-height:275px;padding:19px}.login-visual h1{font-size:34px;margin:7px 0}.login-visual p{font-size:12px}.login-visual>small{display:none}.login-content{padding:47px 18px 24px}.theme-login{top:8px;right:14px}.login-form{gap:13px}.grid,.grid-even{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.kpi{padding:11px}.top{gap:5px;padding:8px}.top .top-title{flex:1}.top input{flex-basis:51%;order:2}.top select{order:3;flex:1}.hero .row{display:block}.hero .badge{margin-top:9px}.chart{height:205px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<!-- GANTI GAMBAR DI SINI melalui ASSETS.loginBg dan ASSETS.logo -->
+<section class="login" id="login">
+ <div class="login-visual"><div class="brand" data-brand></div><div><div class="tag">Operasi distribusi energi</div><h1>Dashboard Monitoring Distribusi BBM</h1><p>Pantau pengiriman, stok depot, armada, dan layanan SPBU dari satu tempat.</p></div><small>Foto <a style="color:inherit" href="https://commons.wikimedia.org/wiki/File:MiRO5.jpg" target="_blank" rel="noopener">MiRO5 oleh Ikar.us</a> · <a style="color:inherit" href="https://creativecommons.org/licenses/by/2.0/de/deed.en" target="_blank" rel="noopener">CC BY 2.0 DE</a> · Dipotong dan diberi gradasi</small></div>
+ <div class="login-content"><button class="theme-login" data-action="theme" aria-label="Ganti tema">◐</button>
+ <form id="login-form" class="login-form" novalidate>
+ <div><h2>Masuk ke Arus BBM</h2><p class="quiet">Masuk menggunakan akun yang dibuat melalui Supabase Authentication.</p></div>
+ <label>Email akun<input id="username" name="username" type="email" autocomplete="username" placeholder="nama@email.com" required></label>
+ <label for="password">Kata sandi</label><div class="password"><input id="password" name="password" type="password" autocomplete="current-password" placeholder="Masukkan kata sandi" required><button type="button" id="see" aria-pressed="false" data-action="password">Lihat</button></div>
+ <div class="login-extra"><label><input id="remember" type="checkbox"> Ingat saya</label><button type="button" class="link" data-action="forgot">Lupa password?</button></div>
+ <p class="message" id="login-message" role="alert"></p><button class="primary" id="submit" type="submit">Masuk</button>
+ <button type="button" data-action="guest">Lanjutkan sebagai tamu</button>
+ <p class="quiet">Akses tamu hanya untuk melihat dashboard, tanpa hak mengubah data.</p>
+ </form></div>
+</section>
+<section id="app" class="app" hidden>
+ <button class="overlay" data-action="menu" aria-label="Tutup menu"></button>
+ <aside id="sidebar"><div class="brand" data-brand></div><div><div class="aside-label tag">Operasional</div><nav aria-label="Menu utama" id="nav"></nav></div><div class="aside-bottom" id="source-side"></div></aside>
+ <div>
+ <header class="top">
+ <button data-action="menu" id="menu" aria-label="Buka atau lipat menu" aria-controls="sidebar" aria-expanded="true"></button>
+ <span id="top-title" class="top-title">Dashboard</span>
+ <input id="global-search" type="search" aria-label="Cari pengiriman" placeholder="Cari ID, SPBU, driver…">
+ <select id="period" aria-label="Periode pengiriman"><option value="1">Hari ini</option><option value="7">7 hari</option><option value="30" selected>30 hari</option><option value="year">Tahun ini</option></select>
+ <details id="notifications"><summary class="bell" aria-label="Notifikasi"><span id="bell-icon"></span><b id="bell-count"></b></summary><div id="notification-list" class="popover"></div></details>
+ <button data-action="theme" aria-label="Ganti tema">◐</button>
+ <!-- GANTI GAMBAR DI SINI melalui ASSETS.avatar -->
+ <details class="profile" id="profile-menu"><summary aria-label="Menu profil"><img id="avatar" alt=""><span id="profile-label">Pengguna</span></summary><div class="popover"><button data-action="profile">Profil</button><button data-view="Pengaturan">Pengaturan</button><button data-action="logout">Keluar</button></div></details>
+ </header>
+ <main id="content" class="content"></main>
+ </div>
+</section>
+<dialog id="dialog" aria-labelledby="modal-title"><div class="modal-body"><div class="row"><h2 id="modal-title"></h2><button data-action="close" aria-label="Tutup dialog">×</button></div><div id="modal-content"></div></div></dialog>
+<div id="announcement" class="sr" role="status" aria-live="polite"></div>
+<script>
+'use strict';
+// GANTI GAMBAR DI SINI. Isi peta dengan URL bila ingin mengganti skema SVG bawaan.
+const svgUrl = svg => 'data:image/svg+xml,' + encodeURIComponent(svg);
+const ASSETS = {
+ logo: svgUrl('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 28 28"><path fill="#0B1F3A" d="M16 1c1 6-1 8-2 10-1-3-2-4-3-5C9 11 4 13 4 19a10 10 0 0 0 20 0c0-5-3-9-5-11 0 4-1 5-2 6 0-4 1-7-1-13Z"/><path fill="#fff" d="M15 15c0 3-5 5-5 8a4 4 0 0 0 8 0c0-2-1-5-3-8Z"/></svg>'),
+ loginBg: 'https://upload.wikimedia.org/wikipedia/commons/a/a4/MiRO5.jpg',
+ peta: '',
+ avatar: svgUrl('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect width="40" height="40" fill="#173d65"/><circle cx="20" cy="15" r="6" fill="#ffd2b1"/><path d="M8 38v-3a12 12 0 0 1 24 0v3" fill="#ff7a1a"/></svg>')
+};
+// GANTI KETERANGAN DI SINI.
+const TEKS = {
+ brand:'Arus BBM', subbrand:'Monitoring distribusi', judul:'Dashboard Monitoring Distribusi BBM',
+ intro:'Pantau arus pengiriman dan tindak lanjuti kendala operasional.',
+ kpi:[['Total Distribusi','Volume BBM berstatus Tiba pada periode terpilih.','drop','KL'],
+ ['Stok Tersedia','Total stok saat ini di seluruh depot.','box','KL'],
+ ['Truk Aktif','Unit armada dengan status Aktif saat ini.','truck','unit'],
+ ['SPBU Terlayani','SPBU unik dengan pengiriman berstatus Tiba.','pin','SPBU'],
+ ['Keterlambatan','Pengiriman berstatus Tertunda pada periode terpilih.','alert','pengiriman']],
+ tren:['Tren distribusi bulanan','Volume berstatus Tiba pada 12 bulan terakhir.'],
+ produk:['Distribusi per jenis BBM','Volume berstatus Tiba pada periode terpilih (KL).'],
+ wilayah:['Distribusi per wilayah','Porsi volume berstatus Tiba menurut wilayah depot asal.'],
+ kapasitas:['Kapasitas tiap depot','Persentase stok terhadap kapasitas. Stok di bawah 20% ditandai kritis.'],
+ peta:['Peta jaringan distribusi','Skema Pulau Jawa. Pilih titik depot atau SPBU untuk melihat rinciannya.'],
+ footer:'Simulasi monitoring distribusi BBM · Kontak proyek melalui GitHub.', versi:'1.0.0'
+};
+// GANTI SUMBER DATA DI SINI. DATA menjadi cadangan ketika jaringan terputus.
+const CONFIG = {url:'https://mkgguiushbpjxwviboxv.supabase.co',key:'sb_publishable_PaIy6PzE7CNcYHLZrP3XOg_ssSIQ0dW',github:'https://github.com/ardinezahir/bbm-monitor'};
+const DATA = {
+ produk:['Pertalite','Pertamax','Solar','Dexlite'], statuses:['Dikirim','Tiba','Tertunda'],
+ depot:[
+ {id:'D1',nama:'Depot Semarang',wilayah:'Jawa Tengah',kapasitas:6500,stok:4820,stok_lalu:4500,x:48,y:41},
+ {id:'D2',nama:'Depot Cepu',wilayah:'Jawa Tengah',kapasitas:3300,stok:518,stok_lalu:780,x:64,y:52},
+ {id:'D3',nama:'Depot Surabaya',wilayah:'Jawa Timur',kapasitas:7200,stok:5440,stok_lalu:5200,x:82,y:62},
+ {id:'D4',nama:'Depot Cirebon',wilayah:'Jawa Barat',kapasitas:4500,stok:3170,stok_lalu:3390,x:29,y:29}],
+ spbu:[
+ {id:'S1',nama:'SPBU Banyumanik',depot_id:'D1',x:48,y:53},{id:'S2',nama:'SPBU Bawen',depot_id:'D1',x:42,y:59},
+ {id:'S3',nama:'SPBU Cepu',depot_id:'D2',x:69,y:50},{id:'S4',nama:'SPBU Blora',depot_id:'D2',x:60,y:45},
+ {id:'S5',nama:'SPBU Margomulyo',depot_id:'D3',x:84,y:54},{id:'S6',nama:'SPBU Gresik',depot_id:'D3',x:76,y:56},
+ {id:'S7',nama:'SPBU Kedawung',depot_id:'D4',x:24,y:25},{id:'S8',nama:'SPBU Losari',depot_id:'D4',x:34,y:38}],
+ armada:[
+ {id:'A1',plat:'H 9312 KT',driver:'Rizky Pratama',kapasitas:32,status:'Aktif'},
+ {id:'A2',plat:'K 8123 CJ',driver:'Agus Setiawan',kapasitas:24,status:'Aktif'},
+ {id:'A3',plat:'L 8074 UT',driver:'Dimas Saputra',kapasitas:32,status:'Aktif'},
+ {id:'A4',plat:'E 9131 QL',driver:'Fajar Nugroho',kapasitas:24,status:'Aktif'},
+ {id:'A5',plat:'H 8710 DF',driver:'Yoga Prakoso',kapasitas:24,status:'Siaga'},
+ {id:'A6',plat:'K 9048 VX',driver:'Bayu Wicaksono',kapasitas:32,status:'Perawatan'},
+ {id:'A7',plat:'L 8019 YH',driver:'Arif Maulana',kapasitas:24,status:'Aktif'},
+ {id:'A8',plat:'E 8622 PL',driver:'Andi Ramadhan',kapasitas:32,status:'Siaga'}],
+ pengiriman:[]
+};
+// Ikon SVG internal.
+const PATHS = {
+ menu:'M4 6h16M4 12h16M4 18h16',dash:'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z',
+ drop:'M12 2c-3 5-7 8.5-7 13a7 7 0 0 0 14 0c0-4.5-4-8-7-13z',
+ box:'M3 7l9-4 9 4v10l-9 4-9-4zM3 7l9 4 9-4m-9 4v10',
+ truck:'M3 5h12v12H3zM15 9h4l3 4v4h-7M7 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm11 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
+ pin:'M12 21s7-6 7-12a7 7 0 1 0-14 0c0 6 7 12 7 12zm0-9a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
+ report:'M5 3h10l4 4v14H5zM8 11h8m-8 4h8m-8 3h5',settings:'M4 7h16M4 17h16M9 4v6m6 4v6',
+ bell:'M5 16h14l-2-3V9A5 5 0 0 0 7 9v4zm5 3a2 2 0 0 0 4 0',
+ alert:'M12 3L2 20h20zM12 9v4m0 3v1'
+};
+const icon = name => '<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="'+PATHS[name]+'"/></svg>';
+const $ = id => document.getElementById(id);
+const safe = value => String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = new Intl.NumberFormat('id-ID');
+const nf = value => fmt.format(value);
+const dateLabel = value => new Intl.DateTimeFormat('id-ID',{dateStyle:'medium',timeZone:'UTC'}).format(new Date(value+'T12:00:00Z'));
+const today = new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Jakarta',dateStyle:'short'}).format(new Date());
+const shift = (date,offset) => new Date(Date.parse(date+'T12:00:00Z')+offset*86400000).toISOString().slice(0,10);
+const monthAt = offset => new Date(Date.UTC(+today.slice(0,4),+today.slice(5,7)-1+offset,1)).toISOString().slice(0,7);
+const nav = [['Dashboard','dash'],['Distribusi','drop'],['Stok Depot','box'],['Armada','truck'],['SPBU','pin'],['Laporan','report'],['Pengaturan','settings']];
+const storage = (type,method,key,value) => {try{return window[type][method](key,value)}catch{return null}};
+const local = (method,key,value) => storage('localStorage',method,'arus-bbm:'+key,value);
+const temp = (method,key,value) => storage('sessionStorage',method,'arus-bbm:'+key,value);
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+let db, user=null, operator=false, source='Data lokal', charts=[], data=DATA, rows=[], loadSequence=0;
+let state={view:'Dashboard',period:'30',query:'',status:'',product:'',page:1,sort:'tanggal',direction:-1,seen:false};
+let recovery=false;
+const brand = () => '<span class="mark"><img alt="" src="'+safe(ASSETS.logo)+'"></span><span class="brand-text">'+safe(TEKS.brand)+'<small>'+safe(TEKS.subbrand)+'</small></span>';
+const badge = value => '<span class="badge '+(['Tiba','Aktif','Normal'].includes(value)?'ok':['Tertunda','Kritis'].includes(value)?'bad':['Siaga','Perawatan'].includes(value)?'warm':'')+'">'+safe(value)+'</span>';
+function seed(){
+ DATA.pengiriman=Array.from({length:730},(_,n)=>{
+  const idx=(n*3+Math.floor(n/5))%9, late=n<56&&n%9===0;
+  return {id:'BBM-'+String(730-n).padStart(4,'0'),tanggal:shift(today,-Math.floor(n/2)),spbu_id:'S'+(1+(n*7+Math.floor(n/11))%8),
+   armada_id:['A1','A2','A3','A4','A7'][(n+Math.floor(n/7))%5],produk:DATA.produk[Math.floor(idx/3)+(idx===8?1:0)],
+   volume:[16,24,24,16,8,16,24][(n*5+Math.floor(n/3))%7],status:late?'Tertunda':n<9&&n%3!==0?'Dikirim':'Tiba',
+   catatan:late?['Antrean bongkar di SPBU','Penyesuaian jadwal pengisian','Pengalihan rute pengiriman'][Math.floor(n/9)%3]:''};
+ });
+}
+function joinData(){
+ const depots=new Map(data.depot.map(x=>[x.id,x]));
+ const stations=new Map(data.spbu.map(x=>[x.id,x]));
+ const fleet=new Map(data.armada.map(x=>[x.id,x]));
+ rows=data.pengiriman.map(r=>({...r,tujuan:stations.get(r.spbu_id)?.nama??'—',wilayah:depots.get(stations.get(r.spbu_id)?.depot_id)?.wilayah??'—',driver:fleet.get(r.armada_id)?.driver??'—'}));
+}
+async function readTable(name, order='id'){
+ const all=[];
+ for(let page=0;;page++){
+  let query=db.from('bbm_'+name).select('*').order(order,{ascending:order!=='tanggal'});
+  if(order!=='id')query=query.order('id',{ascending:false});
+  const {data:batch,error}=await query.range(page*500,page*500+499);
+  if(error)throw error;
+  all.push(...batch);
+  if(batch.length<500)return all;
+ }
+}
+async function refresh(){
+ if(!db)return;
+ const seq=++loadSequence;
+ try{
+  const [depot,spbu,armada,pengiriman]=await Promise.all([readTable('depot'),readTable('spbu'),readTable('armada'),readTable('pengiriman','tanggal')]);
+  if(seq!==loadSequence)return;
+  data={depot,spbu,armada,pengiriman};source='Supabase · Data simulasi';
+ }catch{
+  if(seq!==loadSequence)return;
+  data=DATA;source='Data lokal · Supabase tidak terjangkau';
+ }
+ joinData(); if(!$('app').hidden)render();
+}
+function periodRange(){
+ const start=state.period==='year'?today.slice(0,4)+'-01-01':shift(today,1-Number(state.period));
+ const days=Math.round((Date.parse(today)-Date.parse(start))/86400000)+1;
+ return [start,shift(start,-days),shift(start,-1)];
+}
+function inRange(a,b){return rows.filter(r=>r.tanggal>=a&&r.tanggal<=b)}
+function current(){return inRange(periodRange()[0],today)}
+const delivered = rs => rs.filter(r=>r.status==='Tiba');
+const sum = rs => rs.reduce((s,r)=>s+r.volume,0);
+const countSPBU = rs => new Set(delivered(rs).map(r=>r.spbu_id)).size;
+const critical = r => r.stok/r.kapasitas<.2;
+function filtered(){
+ const q=state.query.toLocaleLowerCase('id-ID').trim(), k=state.sort;
+ return current().filter(r=>(!state.status||r.status===state.status)&&(!state.product||r.produk===state.product)&&
+  (!q||[r.id,r.tujuan,r.driver,r.produk,r.status,r.wilayah].some(v=>v.toLocaleLowerCase('id-ID').includes(q))))
+  .sort((a,b)=>state.direction*(k==='volume'?a[k]-b[k]:String(a[k]).localeCompare(String(b[k]),'id'))||b.id.localeCompare(a.id));
+}
+function theme(value){
+ document.documentElement.dataset.theme=value;local('setItem','theme',value);
+ document.querySelectorAll('[data-action=theme]').forEach(el=>{el.setAttribute('aria-pressed',String(value==='dark'));el.textContent=value==='dark'?'☀':'◐'});
+ if(!$('app').hidden)render();
+}
+function setView(view){
+ if(!nav.some(([v])=>v===view))return;
+ state.view=view;state.page=1;$('app').classList.remove('mobile-open');syncMenu();
+ $('profile-menu').open=false;$('notifications').open=false;render();window.scrollTo(0,0);
+}
+function syncMenu(){
+ $('menu').setAttribute('aria-expanded',String(innerWidth<=800?$('app').classList.contains('mobile-open'):!$('app').classList.contains('collapsed')));
+}
+function header(){
+ $('top-title').textContent=state.view;
+ $('profile-label').textContent=operator?'Operator':user?.email?'Pengguna':'Tamu';
+ $('source-side').textContent=source;
+ $('nav').innerHTML=nav.map(([v,i])=>'<button data-view="'+v+'" aria-label="'+v+'" title="'+v+'" '+(v===state.view?'aria-current="page"':'')+'>'+icon(i)+'<span class="nav-label">'+v+'</span></button>').join('');
+ const alerts=alertData();
+ $('bell-count').hidden=state.seen||alerts.length===0;$('bell-count').textContent=alerts.length;
+ $('notification-list').innerHTML='<strong>Peringatan periode ini</strong>'+alerts.slice(0,5).map(a=>'<button data-detail="'+safe(a.key)+'">'+safe(a.title)+'</button>').join('')+(alerts.length?'':'<p class="quiet">Tidak ada peringatan.</p>')+'<button data-action="seen">Tandai dibaca</button>';
+}
+function footer(){
+ return '<footer class="footer"><div><div class="brand">'+brand()+'</div><p class="quiet">'+safe(TEKS.footer)+'</p></div><div class="footer-links"><button class="link" data-view="Dashboard">Dashboard</button><button class="link" data-view="Laporan">Laporan</button><a href="https://github.com/ardinezahir" target="_blank" rel="noopener" aria-label="Kontak melalui GitHub">⌘ GitHub</a><a href="'+safe(CONFIG.github)+'" target="_blank" rel="noopener">Repositori</a></div><div class="quiet">© '+today.slice(0,4)+' '+safe(TEKS.brand)+' · v'+TEKS.versi+'</div></footer>';
+}
+function titleBlock(title,note){return '<div class="page-title"><h1>'+safe(title)+'</h1><p class="quiet">'+safe(note)+'</p></div>'}
+function sectionTitle(info){return '<h2>'+safe(info[0])+'</h2><p class="quiet chart-note">'+safe(info[1])+'</p>'}
+function alertData(){
+ return [...data.depot.filter(critical).map(x=>({key:x.id,title:x.nama+' · Stok kritis',note:nf(x.stok)+' KL tersedia'})),
+ ...current().filter(r=>r.status==='Tertunda').map(r=>({key:r.id,title:r.id+' · '+r.tujuan,note:r.catatan||'Pengiriman tertunda'}))];
+}
+function progress(){
+ return data.depot.map(x=>{
+  const pct=Math.round(x.stok/x.kapasitas*100);
+  return '<div class="progress-row"><div class="row"><strong>'+safe(x.nama)+'</strong>'+badge(critical(x)?'Kritis':'Normal')+'</div><div class="track" role="progressbar" aria-label="'+safe(x.nama)+'" aria-valuenow="'+pct+'"><span class="'+(critical(x)?'low':'')+'" style="width:'+pct+'%"></span></div><p class="quiet">'+nf(x.stok)+' / '+nf(x.kapasitas)+' KL · '+pct+'%</p></div>';
+ }).join('');
+}
+function map(){
+ const background=ASSETS.peta?'<img alt="" src="'+safe(ASSETS.peta)+'">':
+ '<svg viewBox="0 0 600 250" preserveAspectRatio="none" aria-hidden="true"><path fill="var(--land)" stroke="var(--blue)" stroke-opacity=".32" stroke-width="2" d="M32 75L53 55 77 61 105 42 137 47 165 69 190 66 207 88 236 102 267 89 290 100 317 104 345 118 366 110 391 125 421 122 441 137 466 124 486 133 500 126 518 150 531 153 552 169 565 191 539 205 510 192 482 186 455 194 429 177 400 185 375 172 347 169 325 155 297 158 273 147 242 151 215 140 189 142 165 126 135 132 115 113 87 117 70 103 51 104zM474 103l20-10 24 3 25-12 20 9-10 14-47 8z"/><path fill="none" stroke="var(--blue)" stroke-width="2" stroke-dasharray="5 6" d="M174 72Q235 125 288 102T384 130T492 155"/><text x="27" y="223" fill="var(--muted)" font-size="15">LAUT JAWA · SKEMA JARINGAN</text></svg>';
+ const points=[...data.depot,...data.spbu].map(p=>'<button class="pin '+(p.depot_id?'spbu':'')+'" style="left:'+Number(p.x)+'%;top:'+Number(p.y)+'%" data-detail="'+safe(p.id)+'" title="'+safe(p.nama)+'" aria-label="'+safe(p.nama)+'"></button>').join('');
+ return '<div class="map">'+background+points+'</div><p class="quiet">● Depot &nbsp; <span style="color:var(--orangeink)">●</span> SPBU</p>';
+}
+const columns=[['id','ID'],['tanggal','Tanggal'],['tujuan','Tujuan'],['produk','Jenis BBM'],['volume','Volume (KL)'],['driver','Driver'],['status','Status']];
+function options(values,selected){return values.map(v=>'<option '+(v===selected?'selected':'')+'>'+safe(v)+'</option>').join('')}
+function table(){
+ return '<section class="card table-card"><div class="row"><h2>Data pengiriman</h2><button data-action="csv">↓ Ekspor CSV</button></div><div class="table-tools"><input type="search" id="table-search" aria-label="Cari di tabel" placeholder="Cari ID, tujuan, atau driver" value="'+safe(state.query)+'"><select id="status-filter" aria-label="Filter status"><option value="">Semua status</option>'+options(DATA.statuses,state.status)+'</select><select id="product-filter" aria-label="Filter jenis BBM"><option value="">Semua BBM</option>'+options(DATA.produk,state.product)+'</select></div><div id="table-result"></div></section>';
+}
+function tableRows(){
+ if(!$('table-result'))return;
+ const list=filtered(), size=7, last=Math.max(1,Math.ceil(list.length/size));
+ state.page=Math.min(state.page,last);
+ const th=columns.map(([k,l])=>'<th scope="col" '+(k===state.sort?'aria-sort="'+(state.direction===1?'ascending':'descending')+'"':'')+'><button data-sort="'+k+'">'+l+(k===state.sort?(state.direction===1?' ↑':' ↓'):' ↕')+'</button></th>').join('');
+ const body=list.slice((state.page-1)*size,state.page*size).map(r=>'<tr>'+columns.map(([k])=>'<td>'+(k==='status'?badge(r[k]):k==='tanggal'?dateLabel(r[k]):k==='volume'?nf(r[k]):k==='id'?'<button data-detail="'+safe(r.id)+'">'+safe(r.id)+'</button>':safe(r[k]))+'</td>').join('')+'</tr>').join('');
+ $('table-result').innerHTML='<div class="scroll" tabindex="0" aria-label="Tabel pengiriman dapat digulir"><table><thead><tr>'+th+'</tr></thead><tbody>'+(body||'<tr><td colspan="7">Tidak ada pengiriman yang cocok.</td></tr>')+'</tbody></table></div><div class="row pager"><span class="quiet">'+nf(list.length)+' pengiriman · Halaman '+state.page+' dari '+last+'</span><div><button data-action="prev" '+(state.page===1?'disabled':'')+'>Sebelumnya</button> <button data-action="next" '+(state.page===last?'disabled':'')+'>Berikutnya</button></div></div>';
+}
+function metricDelta(value,old,invert){
+ if(old===null)return '<span class="quiet">Saat ini</span>';
+ if(!old)return '<span class="quiet">'+(value?'Baru':'Tetap')+'</span>';
+ const delta=Math.round((value-old)/old*100);
+ return '<span class="badge '+(delta===0?'':(delta>0)!==invert?'ok':'bad')+'" title="Perubahan dari periode pembanding">'+(delta>0?'↑ +':delta<0?'↓ ':'')+delta+'%</span>';
+}
+function dashboard(){
+ const [start,prevStart,prevEnd]=periodRange(), now=current(), before=inRange(prevStart,prevEnd);
+ const values=[sum(delivered(now)),data.depot.reduce((s,d)=>s+d.stok,0),data.armada.filter(r=>r.status==='Aktif').length,countSPBU(now),now.filter(r=>r.status==='Tertunda').length];
+ const past=[sum(delivered(before)),data.depot.reduce((s,d)=>s+d.stok_lalu,0),null,countSPBU(before),before.filter(r=>r.status==='Tertunda').length];
+ const cards=TEKS.kpi.map(([label,note,i,unit],n)=>'<article class="card kpi"><div class="row"><div class="kpi-icon">'+icon(i)+'</div>'+metricDelta(values[n],past[n],n===4)+'</div><h2>'+label+'</h2><strong data-count="'+values[n]+'">'+nf(values[n])+'</strong><span class="unit">'+unit+'</span><p class="quiet">'+note+'</p></article>').join('');
+ const chart=(key)=>'<article class="card"><h2>'+TEKS[key][0]+'</h2><div class="chart" id="'+key+'-wrap"><canvas id="'+key+'" role="img" aria-label="'+TEKS[key][0]+'"></canvas></div><p class="quiet chart-note">'+TEKS[key][1]+'</p></article>';
+ const recent=[...rows].sort((a,b)=>b.tanggal.localeCompare(a.tanggal)||b.id.localeCompare(a.id)).slice(0,5);
+ return '<section class="hero"><div class="row"><div><div class="tag">Operasional · Distribusi energi</div><h1>'+TEKS.judul+'</h1><p>'+TEKS.intro+'</p><p class="quiet">'+dateLabel(start)+' — '+dateLabel(today)+' · WIB</p></div><span class="badge warm">'+safe(source)+'</span></div></section>'+
+ '<section class="kpis" aria-label="Ringkasan KPI">'+cards+'</section>'+
+ '<section class="grid">'+chart('tren')+chart('produk')+'</section>'+
+ '<section class="grid grid-even">'+chart('wilayah')+'<article class="card">'+sectionTitle(TEKS.kapasitas)+progress()+'</article></section>'+
+ '<section class="grid"><article class="card">'+sectionTitle(TEKS.peta)+map()+'</article><article class="card"><h2>Peringatan</h2><ul class="list">'+(alertData().slice(0,6).map(a=>'<li><button data-detail="'+safe(a.key)+'"><b>'+safe(a.title)+'</b><p class="quiet">'+safe(a.note)+'</p></button></li>').join('')||'<li>Tidak ada peringatan.</li>')+'</ul></article></section>'+
+ table()+'<section class="card table-card"><h2>Aktivitas terbaru</h2><ol class="list timeline">'+(recent.map(r=>'<li><button class="link" data-detail="'+safe(r.id)+'">'+safe(r.id)+'</button> · '+safe(r.tujuan)+' '+badge(r.status)+'<p class="quiet">'+dateLabel(r.tanggal)+' · '+safe(r.produk)+' · '+nf(r.volume)+' KL</p></li>').join('')||'<li>Belum ada aktivitas.</li>')+'</ol></section>';
+}
+function chartData(){
+ const months=Array.from({length:12},(_,i)=>monthAt(i-11)), all=delivered(rows), recent=delivered(current());
+ const groups=[...new Set(data.depot.map(r=>r.wilayah))].sort();
+ return {
+  tren:{type:'line',labels:months.map(m=>new Intl.DateTimeFormat('id-ID',{month:'short',year:'2-digit',timeZone:'UTC'}).format(new Date(m+'-01T12:00:00Z'))),values:months.map(m=>sum(all.filter(r=>r.tanggal.startsWith(m)))),label:'Volume tiba (KL)'},
+  produk:{type:'bar',labels:DATA.produk,values:DATA.produk.map(p=>sum(recent.filter(r=>r.produk===p))),label:'Volume tiba (KL)'},
+  wilayah:{type:'doughnut',labels:groups,values:groups.map(p=>sum(recent.filter(r=>r.wilayah===p))),label:'Volume tiba (KL)'}
+ };
+}
+function drawCharts(){
+ const css=getComputedStyle(document.documentElement), color=k=>css.getPropertyValue(k).trim();
+ const colors=['--blue','--chart2','--chart3','--chart4'].map(color);
+ for(const [id,g] of Object.entries(chartData())){
+  const canvas=$(id);if(!canvas)continue;
+  const summary=g.labels.map((x,i)=>x+' '+nf(g.values[i])+' KL').join(', ');
+  canvas.setAttribute('aria-label',TEKS[id][0]+'. '+summary);
+  if(!window.Chart){
+   $(id+'-wrap').innerHTML='<ul class="list" style="max-height:100%;overflow:auto">'+g.labels.map((x,i)=>'<li>'+safe(x)+' · '+nf(g.values[i])+' KL</li>').join('')+'</ul>';
+   continue;
+  }
+  const ring=g.type==='doughnut';
+  charts.push(new Chart(canvas,{type:g.type,data:{labels:g.labels,datasets:[{label:g.label,data:g.values,
+   backgroundColor:g.type==='line'?color('--bluebg'):colors,borderColor:g.type==='line'?colors[0]:color('--surface'),
+   borderWidth:g.type==='line'?2:1,borderRadius:g.type==='bar'?7:0,tension:.33,fill:g.type==='line',pointRadius:3}]},
+   options:{responsive:true,maintainAspectRatio:false,animation:reduceMotion?false:{duration:300},interaction:{mode:'nearest',intersect:false},
+    plugins:{legend:{position:'bottom',labels:{color:color('--ink'),usePointStyle:true}},tooltip:{callbacks:{label:ctx=>ctx.label+': '+nf(ctx.raw)+' KL'}}},
+    ...(ring?{cutout:'65%'}:{scales:{x:{ticks:{color:color('--muted')},grid:{display:false}},y:{beginAtZero:true,ticks:{color:color('--muted')},grid:{color:color('--line')}}}})}}));
+ }
+}
+function render(){
+ charts.forEach(c=>c.destroy());charts=[];header();
+ const view=state.view;let body='';
+ if(view==='Dashboard')body=dashboard();
+ if(view==='Distribusi')body=titleBlock(view,'Cari, saring, dan buka detail pengiriman.')+table();
+ if(view==='Stok Depot')body=titleBlock(view,'Pantau stok dan kapasitas penyimpanan tiap depot.')+'<div class="grid grid-even"><section class="card">'+sectionTitle(TEKS.kapasitas)+progress()+'</section><section class="card">'+sectionTitle(TEKS.peta)+map()+'</section></div>';
+ if(view==='Armada')body=titleBlock(view,'Daftar truk tangki, pengemudi, dan status kesiapan.')+'<div class="cards-view">'+data.armada.map(r=>'<article class="card"><div class="row"><h2>'+safe(r.plat)+'</h2>'+badge(r.status)+'</div><p>'+safe(r.driver)+'</p><p class="quiet">Kapasitas '+nf(r.kapasitas)+' KL</p></article>').join('')+'</div>';
+ if(view==='SPBU')body=titleBlock(view,'Daftar titik layanan SPBU dan depot asal.')+'<div class="cards-view">'+data.spbu.map(r=>'<article class="card"><h2>'+safe(r.nama)+'</h2><p class="quiet">'+safe(data.depot.find(x=>x.id===r.depot_id)?.nama)+'</p><button data-detail="'+safe(r.id)+'">Lihat detail</button></article>').join('')+'</div>';
+ if(view==='Laporan')body=titleBlock(view,'Ekspor data sesuai periode, pencarian, dan filter tabel.')+table();
+ if(view==='Pengaturan')body=titleBlock(view,'Sesuaikan tampilan dan periksa koneksi data.')+'<section class="card table-card"><h2>Preferensi</h2><ul class="list"><li><div class="row"><span>Tampilan '+(document.documentElement.dataset.theme==='dark'?'gelap':'terang')+'</span><button data-action="theme">Ganti tema</button></div></li><li><div class="row"><span>'+safe(source)+'</span><button data-action="refresh">Muat ulang data</button></div></li><li><div class="row"><span>'+(operator?'Operator · Bisa mengubah status':'Akses baca data simulasi')+'</span><button data-action="profile">Profil</button></div></li></ul></section>';
+ $('content').innerHTML='<div class="fade">'+body+'</div>'+footer();
+ tableRows();drawCharts();
+ if(!reduceMotion&&view==='Dashboard'){
+  const start=performance.now(), items=[...document.querySelectorAll('[data-count]')];
+  const tick=now=>{const progress=Math.min((now-start)/420,1);items.forEach(el=>{el.textContent=nf(Math.round(Number(el.dataset.count)*(1-Math.pow(1-progress,3))))});if(progress<1)requestAnimationFrame(tick)};
+  requestAnimationFrame(tick);
+ }
+}
+function openModal(title,content){
+ $('modal-title').textContent=title;$('modal-content').innerHTML=content;
+ if(!$('dialog').open)$('dialog').showModal();
+}
+function showDetail(id){
+ const r=rows.find(x=>x.id===id);
+ if(r){
+  const edit=operator?'<form id="edit-form" data-id="'+safe(r.id)+'"><label>Status<select name="status">'+options(DATA.statuses,r.status)+'</select></label><label>Catatan<input name="catatan" maxlength="240" value="'+safe(r.catatan)+'"></label><button class="primary">Simpan status</button><p class="message" role="alert"></p></form>':'';
+  openModal(r.id,'<p><b>'+safe(r.tujuan)+'</b> · '+dateLabel(r.tanggal)+'</p><p>'+safe(r.produk)+' · '+nf(r.volume)+' KL · '+safe(r.driver)+'</p><p>'+badge(r.status)+'</p><p>'+safe(r.catatan)+'</p>'+edit);return;
+ }
+ const depot=data.depot.find(x=>x.id===id);
+ if(depot){openModal(depot.nama,'<p>'+safe(depot.wilayah)+'</p><p>Stok '+nf(depot.stok)+' KL dari '+nf(depot.kapasitas)+' KL</p><p>'+badge(critical(depot)?'Kritis':'Normal')+'</p>');return;}
+ const spbu=data.spbu.find(x=>x.id===id);
+ if(spbu)openModal(spbu.nama,'<p>Depot asal · '+safe(data.depot.find(x=>x.id===spbu.depot_id)?.nama)+'</p><p>'+nf(current().filter(x=>x.spbu_id===id&&x.status==='Tiba').length)+' pengiriman tiba pada periode ini</p>');
+}
+function csv(){
+ const quote=x=>'"'+String(x??'').replace(/^[=+@\-\t\r\n]/,m=>"'"+m).replaceAll('"','""')+'"';
+ const content=[columns.map(([,label])=>label),...filtered().map(r=>columns.map(([key])=>r[key]))].map(r=>r.map(quote).join(';')).join('\r\n');
+ const url=URL.createObjectURL(new Blob(['\ufeff',content],{type:'text/csv;charset=utf-8'}));
+ const a=document.createElement('a');a.href=url;a.download='pengiriman-bbm-'+today+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+function enter(){
+ $('login').hidden=true;$('app').hidden=false;syncMenu();render();refresh();
+}
+function loginScreen(){
+ ++loadSequence;$('app').hidden=true;$('login').hidden=false;$('password').value='';$('password').type='password';$('see').textContent='Lihat';$('see').setAttribute('aria-pressed','false');$('login-message').textContent='';
+ charts.forEach(c=>c.destroy());charts=[];
+}
+async function access(session){
+ user=session?.user??null;operator=false;
+ if(user&&db){
+  try{const {data:record}=await db.from('bbm_operator').select('user_id').eq('user_id',user.id).maybeSingle();operator=Boolean(record)}catch{}
+ }
+}
+async function signIn(){
+ const name=$('username').value.trim(), pass=$('password').value, remember=$('remember').checked;
+ $('login-message').textContent='';
+ if(!name||!pass){$('login-message').textContent='Isi username dan kata sandi.';(!name?$('username'):$('password')).focus();return;}
+ const button=$('submit');button.disabled=true;button.innerHTML='<span class="spinner" aria-hidden="true"></span> Memeriksa…';
+ try{
+  if(!db)throw new Error('Koneksi ke Supabase tidak tersedia. Coba lagi nanti.');
+  if(!name.includes('@'))throw new Error('Masukkan alamat email yang terdaftar di Supabase.');
+  local(remember?'setItem':'removeItem','remember-auth','1');
+  const {data:result,error}=await db.auth.signInWithPassword({email:name,password:pass});
+  if(error)throw new Error('Login gagal. Periksa email dan kata sandi.');
+  await access(result.session);
+  enter();$('menu').focus();
+ }catch(e){$('login-message').textContent=e.message;}
+ finally{button.disabled=false;button.textContent='Masuk';}
+}
+function forgot(){
+ openModal('Atur ulang kata sandi','<p>Masukkan email akun yang terdaftar di Supabase untuk menerima tautan pemulihan.</p><form id="forgot-form"><label>Email akun<input required name="email" type="email" autocomplete="email"></label><button class="primary">Kirim tautan pemulihan</button><p class="message" role="status"></p></form>');
+}
+$('dialog').addEventListener('close',async()=>{if(recovery){recovery=false;await db.auth.signOut({scope:'local'});}});
+function recoveryForm(){
+ recovery=true;loginScreen();
+ openModal('Kata sandi baru','<form id="recovery-form"><label>Kata sandi baru<input type="password" name="password" autocomplete="new-password" minlength="8" required></label><button class="primary">Simpan kata sandi</button><p class="message" role="status"></p></form>');
+}
+async function logout(){
+ if(user&&db){const {error}=await db.auth.signOut({scope:'local'});if(error){openModal('Keluar gagal','<p>Coba lagi saat koneksi tersedia.</p>');return;}}
+ user=null;operator=false;local('removeItem','remember-auth');
+ state={view:'Dashboard',period:'30',query:'',status:'',product:'',page:1,sort:'tanggal',direction:-1,seen:false};
+ $('period').value='30';$('global-search').value='';$('profile-menu').open=false;loginScreen();$('username').focus();
+}
+document.addEventListener('click',event=>{
+ const control=event.target.closest('button');if(!control)return;
+ if(control.dataset.view){setView(control.dataset.view);return;}
+ if(control.dataset.detail){$('notifications').open=false;showDetail(control.dataset.detail);return;}
+ if(control.dataset.sort){
+  const k=control.dataset.sort;state.direction=state.sort===k?-state.direction:1;state.sort=k;state.page=1;tableRows();document.querySelector('[data-sort='+k+']')?.focus();return;
+ }
+ switch(control.dataset.action){
+ case 'menu': $('app').classList.toggle(innerWidth<=800?'mobile-open':'collapsed');syncMenu();break;
+ case 'theme':theme(document.documentElement.dataset.theme==='dark'?'light':'dark');break;
+ case 'password':{const show=$('password').type==='password';$('password').type=show?'text':'password';control.textContent=show?'Sembunyikan':'Lihat';control.setAttribute('aria-pressed',String(show));break;}
+ case 'forgot':forgot();break;
+ case 'close':$('dialog').close();break;
+ case 'profile':$('profile-menu').open=false;openModal('Profil','<p><b>'+safe(user?.email||'Tamu')+'</b></p><p>'+safe(operator?'Operator · Akses edit status':'Akses hanya baca')+'</p>');break;
+ case 'logout':logout();break;
+ case 'guest':user=null;operator=false;enter();break;
+ case 'csv':csv();break;
+ case 'prev':state.page--;tableRows();document.querySelector('[data-action=next]:not(:disabled)')?.focus();break;
+ case 'next':state.page++;tableRows();document.querySelector('[data-action=prev]:not(:disabled)')?.focus();break;
+ case 'seen':state.seen=true;header();$('notifications').open=false;break;
+ case 'refresh':if(db){control.disabled=true;refresh()}else openModal('Koneksi tidak tersedia','<p>Data lokal tetap bisa dibuka. Muat ulang halaman saat internet tersedia.</p>');break;
+ }
+});
+document.addEventListener('input',event=>{
+ if(!['global-search','table-search'].includes(event.target.id))return;
+ state.query=event.target.value;state.page=1;
+ if(event.target.id==='global-search'&&!$('table-result'))setView('Distribusi');
+ const peer=event.target.id==='global-search'?$('table-search'):$('global-search');if(peer)peer.value=state.query;
+ tableRows();
+});
+document.addEventListener('change',event=>{
+ const {id,value}=event.target;
+ if(id==='period'){state.period=value;state.page=1;state.seen=false;render();}
+ if(id==='status-filter'||id==='product-filter'){state[id==='status-filter'?'status':'product']=value;state.page=1;tableRows();}
+});
+document.addEventListener('submit',async event=>{
+ const f=event.target;
+ if(!['login-form','forgot-form','recovery-form','edit-form'].includes(f.id))return;
+ event.preventDefault();
+ if(f.id==='login-form'){await signIn();return;}
+ const msg=f.querySelector('.message'), button=f.querySelector('button'), fields=new FormData(f);
+ button.disabled=true;msg.textContent='Memproses…';
+ try{
+  if(!db)throw new Error('Koneksi Supabase tidak tersedia.');
+  if(f.id==='forgot-form'){
+   if(location.protocol==='file:')throw new Error('Buka situs HTTPS untuk menerima tautan pemulihan.');
+   const {error}=await db.auth.resetPasswordForEmail(fields.get('email'),{redirectTo:location.origin+location.pathname});if(error)throw error;
+   msg.textContent='Jika akun terdaftar, periksa kotak masuk email operator.';
+  }
+  if(f.id==='recovery-form'){
+   const {error}=await db.auth.updateUser({password:fields.get('password')});if(error)throw error;
+   await db.auth.signOut({scope:'local'});recovery=false;$('dialog').close();$('login-message').textContent='Kata sandi diperbarui. Silakan masuk.';
+  }
+  if(f.id==='edit-form'){
+   const {data:updated,error}=await db.from('bbm_pengiriman').update({status:fields.get('status'),catatan:String(fields.get('catatan')).trim()}).eq('id',f.dataset.id).select('id').maybeSingle();
+   if(error||!updated)throw new Error('Gagal menyimpan. Periksa hak akses operator.');
+   $('dialog').close();$('announcement').textContent='Status pengiriman tersimpan.';await refresh();
+  }
+ }catch(e){msg.textContent=e.message;}
+ finally{button.disabled=false;}
+});
+addEventListener('resize',syncMenu);
+window.addEventListener('DOMContentLoaded',async()=>{
+ document.querySelectorAll('[data-brand]').forEach(el=>el.innerHTML=brand());
+ document.documentElement.style.setProperty('--login-image','url("'+ASSETS.loginBg+'")');
+ $('avatar').src=ASSETS.avatar;$('menu').innerHTML=icon('menu');$('bell-icon').innerHTML=icon('bell');
+ theme(local('getItem','theme')==='dark'?'dark':'light');seed();joinData();
+ if(window.supabase&&CONFIG.key.startsWith('sb_publishable_')){
+  try{
+   const authStorage={
+    getItem:key=>local('getItem',key)||temp('getItem',key),
+    setItem:(key,value)=>{const keep=local('getItem','remember-auth')==='1';(keep?local:temp)('setItem',key,value);(keep?temp:local)('removeItem',key);},
+    removeItem:key=>{local('removeItem',key);temp('removeItem',key);}
+   };
+   db=window.supabase.createClient(CONFIG.url,CONFIG.key,{auth:{storageKey:'auth-mkgguiushbpjxwviboxv',storage:authStorage,detectSessionInUrl:true,persistSession:true,flowType:'implicit'}});
+   db.auth.onAuthStateChange(event=>{if(event==='PASSWORD_RECOVERY')recoveryForm()});
+   const {data:sessionData}=await db.auth.getSession();
+   if(recovery)return;
+   if(sessionData?.session){await access(sessionData.session);enter();return;}
+  }catch{}
+ }
+ // Hapus penanda login demo versi lama; autentikasi sekarang hanya lewat Supabase.
+ local('removeItem','demo');temp('removeItem','demo');
+});
+</script>
+</body>
+</html>
