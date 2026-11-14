@@ -21,6 +21,7 @@
 @media(max-width:570px){.login{display:block}.login-visual{min-height:275px;padding:19px}.login-visual h1{font-size:34px;margin:7px 0}.login-visual p{font-size:12px}.login-visual>small{display:none}.login-content{padding:47px 18px 24px}.theme-login{top:8px;right:14px}.login-form{gap:13px}.grid,.grid-even{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.kpi{padding:11px}.top{gap:5px;padding:8px}.top .top-title{flex:1}.top input{flex-basis:51%;order:2}.top select{order:3;flex:1}.hero .row{display:block}.hero .badge{margin-top:9px}.chart{height:205px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 .management-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}.manage-actions{display:flex;gap:7px;align-items:center;flex-wrap:wrap}.manage-actions button{font-size:12px;padding:7px 10px}.danger{border-color:var(--red);color:var(--red)}.danger:hover{background:var(--redbg)}.editor-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.editor-grid label{display:grid;gap:5px;font-weight:600;font-size:12px}.editor-grid input,.editor-grid select{min-width:0;width:100%;margin:0}.editor-grid .wide{grid-column:1/-1}dialog.editor-dialog{width:min(620px,calc(100% - 28px));max-height:88vh;overflow-y:auto}.editor-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;margin-top:12px}.notice{padding:10px 12px;border-radius:10px;background:var(--bluebg);color:var(--blue);margin-bottom:12px;font-size:13px}@media(max-width:570px){.editor-grid{grid-template-columns:1fr}.management-head{align-items:flex-start}}
+.cell-address{white-space:normal;min-width:260px;max-width:520px}.cards-view a{align-self:center}.list a{font-weight:600}#dialog.editor-dialog{width:min(700px,calc(100% - 28px))}
 </style>
 </head>
 <body>
@@ -72,42 +73,20 @@ const TEKS = {
  brand:'Arus BBM', subbrand:'Monitoring distribusi', judul:'Dashboard Monitoring Distribusi BBM',
  intro:'Pantau arus pengiriman dan tindak lanjuti kendala operasional.',
  kpi:[['Total Distribusi','Volume BBM berstatus Tiba pada periode terpilih.','drop','KL'],
- ['Stok Tersedia','Total stok saat ini di seluruh depot.','box','KL'],
+ ['Stok Tersedia','Ditampilkan setelah stok seluruh terminal diinput.','box','KL'],
  ['Truk Aktif','Unit armada dengan status Aktif saat ini.','truck','unit'],
  ['SPBU Terlayani','SPBU unik dengan pengiriman berstatus Tiba.','pin','SPBU'],
  ['Keterlambatan','Pengiriman berstatus Tertunda pada periode terpilih.','alert','pengiriman']],
  tren:['Tren distribusi bulanan','Volume berstatus Tiba pada 12 bulan terakhir.'],
  produk:['Distribusi per jenis BBM','Volume berstatus Tiba pada periode terpilih (KL).'],
- wilayah:['Distribusi per wilayah','Porsi volume berstatus Tiba menurut wilayah depot asal.'],
- kapasitas:['Kapasitas tiap depot','Persentase stok terhadap kapasitas. Stok di bawah 20% ditandai kritis.'],
- peta:['Peta jaringan distribusi','Skema Pulau Jawa. Pilih titik depot atau SPBU untuk melihat rinciannya.'],
- footer:'Simulasi monitoring distribusi BBM · Kontak proyek melalui GitHub.', versi:'1.0.0'
+ wilayah:['Distribusi per provinsi','Porsi volume tiba berdasarkan provinsi SPBU tujuan.'],
+ kapasitas:['Stok dan kapasitas terminal','Angka ditampilkan jika sudah dimasukkan operator. Tanpa data tidak dianggap nol.'],
+ peta:['Lokasi referensi terminal dan SPBU','Alamat berdasarkan sumber publik; hubungan pemasok SPBU belum ditetapkan.'],
+ footer:'Data referensi lokasi Pertamina, tidak mewakili data pengiriman atau stok resmi perusahaan.', versi:'2.0.0'
 };
-// GANTI SUMBER DATA DI SINI. DATA menjadi cadangan ketika jaringan terputus.
+// DATA kosong digunakan saat koneksi tidak tersedia; tidak ada data pengiriman atau armada simulasi.
 const CONFIG = {url:'https://mkgguiushbpjxwviboxv.supabase.co',key:'sb_publishable_PaIy6PzE7CNcYHLZrP3XOg_ssSIQ0dW',github:'https://github.com/ardinezahir/bbm-monitor'};
-const DATA = {
- produk:['Pertalite','Pertamax','Solar','Dexlite'], statuses:['Dikirim','Tiba','Tertunda'],
- depot:[
- {id:'D1',nama:'Depot Semarang',wilayah:'Jawa Tengah',kapasitas:6500,stok:4820,stok_lalu:4500,x:48,y:41},
- {id:'D2',nama:'Depot Cepu',wilayah:'Jawa Tengah',kapasitas:3300,stok:518,stok_lalu:780,x:64,y:52},
- {id:'D3',nama:'Depot Surabaya',wilayah:'Jawa Timur',kapasitas:7200,stok:5440,stok_lalu:5200,x:82,y:62},
- {id:'D4',nama:'Depot Cirebon',wilayah:'Jawa Barat',kapasitas:4500,stok:3170,stok_lalu:3390,x:29,y:29}],
- spbu:[
- {id:'S1',nama:'SPBU Banyumanik',depot_id:'D1',x:48,y:53},{id:'S2',nama:'SPBU Bawen',depot_id:'D1',x:42,y:59},
- {id:'S3',nama:'SPBU Cepu',depot_id:'D2',x:69,y:50},{id:'S4',nama:'SPBU Blora',depot_id:'D2',x:60,y:45},
- {id:'S5',nama:'SPBU Margomulyo',depot_id:'D3',x:84,y:54},{id:'S6',nama:'SPBU Gresik',depot_id:'D3',x:76,y:56},
- {id:'S7',nama:'SPBU Kedawung',depot_id:'D4',x:24,y:25},{id:'S8',nama:'SPBU Losari',depot_id:'D4',x:34,y:38}],
- armada:[
- {id:'A1',plat:'H 9312 KT',driver:'Rizky Pratama',kapasitas:32,status:'Aktif'},
- {id:'A2',plat:'K 8123 CJ',driver:'Agus Setiawan',kapasitas:24,status:'Aktif'},
- {id:'A3',plat:'L 8074 UT',driver:'Dimas Saputra',kapasitas:32,status:'Aktif'},
- {id:'A4',plat:'E 9131 QL',driver:'Fajar Nugroho',kapasitas:24,status:'Aktif'},
- {id:'A5',plat:'H 8710 DF',driver:'Yoga Prakoso',kapasitas:24,status:'Siaga'},
- {id:'A6',plat:'K 9048 VX',driver:'Bayu Wicaksono',kapasitas:32,status:'Perawatan'},
- {id:'A7',plat:'L 8019 YH',driver:'Arif Maulana',kapasitas:24,status:'Aktif'},
- {id:'A8',plat:'E 8622 PL',driver:'Andi Ramadhan',kapasitas:32,status:'Siaga'}],
- pengiriman:[]
-};
+const DATA = { produk:['Pertalite','Pertamax','Solar','Dexlite'], statuses:['Dikirim','Tiba','Tertunda'], depot:[], spbu:[], armada:[], pengiriman:[] };
 // Ikon SVG internal.
 const PATHS = {
  menu:'M4 6h16M4 12h16M4 18h16',dash:'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z',
@@ -133,25 +112,16 @@ const storage = (type,method,key,value) => {try{return window[type][method](key,
 const local = (method,key,value) => storage('localStorage',method,'arus-bbm:'+key,value);
 const temp = (method,key,value) => storage('sessionStorage',method,'arus-bbm:'+key,value);
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
-let db, user=null, operator=false, source='Data lokal', charts=[], data=DATA, rows=[], loadSequence=0;
+let db, user=null, operator=false, source='Menghubungkan Supabase', charts=[], data=DATA, rows=[], loadSequence=0;
 let state={view:'Dashboard',period:'30',query:'',status:'',product:'',page:1,sort:'tanggal',direction:-1,seen:false};
 let recovery=false;
 const brand = () => '<span class="mark"><img alt="" src="'+safe(ASSETS.logo)+'"></span><span class="brand-text">'+safe(TEKS.brand)+'<small>'+safe(TEKS.subbrand)+'</small></span>';
 const badge = value => '<span class="badge '+(['Tiba','Aktif','Normal'].includes(value)?'ok':['Tertunda','Kritis'].includes(value)?'bad':['Siaga','Perawatan'].includes(value)?'warm':'')+'">'+safe(value)+'</span>';
-function seed(){
- DATA.pengiriman=Array.from({length:730},(_,n)=>{
-  const idx=(n*3+Math.floor(n/5))%9, late=n<56&&n%9===0;
-  return {id:'BBM-'+String(730-n).padStart(4,'0'),tanggal:shift(today,-Math.floor(n/2)),spbu_id:'S'+(1+(n*7+Math.floor(n/11))%8),
-   armada_id:['A1','A2','A3','A4','A7'][(n+Math.floor(n/7))%5],produk:DATA.produk[Math.floor(idx/3)+(idx===8?1:0)],
-   volume:[16,24,24,16,8,16,24][(n*5+Math.floor(n/3))%7],status:late?'Tertunda':n<9&&n%3!==0?'Dikirim':'Tiba',
-   catatan:late?['Antrean bongkar di SPBU','Penyesuaian jadwal pengisian','Pengalihan rute pengiriman'][Math.floor(n/9)%3]:''};
- });
-}
 function joinData(){
  const depots=new Map(data.depot.map(x=>[x.id,x]));
  const stations=new Map(data.spbu.map(x=>[x.id,x]));
  const fleet=new Map(data.armada.map(x=>[x.id,x]));
- rows=data.pengiriman.map(r=>({...r,tujuan:stations.get(r.spbu_id)?.nama??'—',wilayah:depots.get(stations.get(r.spbu_id)?.depot_id)?.wilayah??'—',driver:fleet.get(r.armada_id)?.driver??'—'}));
+ rows=data.pengiriman.map(r=>({...r,tujuan:stations.get(r.spbu_id)?.nama??'—',wilayah:stations.get(r.spbu_id)?.provinsi||depots.get(stations.get(r.spbu_id)?.depot_id)?.wilayah||'—',driver:fleet.get(r.armada_id)?.driver??'—'}));
 }
 async function readTable(name, order='id'){
  const all=[];
@@ -170,10 +140,10 @@ async function refresh(){
  try{
   const [depot,spbu,armada,pengiriman]=await Promise.all([readTable('depot'),readTable('spbu'),readTable('armada'),readTable('pengiriman','tanggal')]);
   if(seq!==loadSequence)return;
-  data={depot,spbu,armada,pengiriman};source='Supabase · Data simulasi';
+  data={depot,spbu,armada,pengiriman};source='Supabase · Referensi lokasi publik';
  }catch{
   if(seq!==loadSequence)return;
-  data=DATA;source='Data lokal · Supabase tidak terjangkau';
+  data=DATA;source='Koneksi gagal · tidak ada data cadangan fiktif';
  }
  joinData(); if(!$('app').hidden)render();
 }
@@ -187,7 +157,7 @@ function current(){return inRange(periodRange()[0],today)}
 const delivered = rs => rs.filter(r=>r.status==='Tiba');
 const sum = rs => rs.reduce((s,r)=>s+r.volume,0);
 const countSPBU = rs => new Set(delivered(rs).map(r=>r.spbu_id)).size;
-const critical = r => r.stok/r.kapasitas<.2;
+const critical = r => r.stok!==null&&r.stok!==undefined&&r.kapasitas>0&&r.stok/r.kapasitas<.2;
 function filtered(){
  const q=state.query.toLocaleLowerCase('id-ID').trim(), k=state.sort;
  return current().filter(r=>(!state.status||r.status===state.status)&&(!state.product||r.produk===state.product)&&
@@ -221,28 +191,32 @@ function footer(){
 }
 function titleBlock(title,note){return '<div class="page-title"><h1>'+safe(title)+'</h1><p class="quiet">'+safe(note)+'</p></div>'}
 function sectionTitle(info){return '<h2>'+safe(info[0])+'</h2><p class="quiet chart-note">'+safe(info[1])+'</p>'}
+const known = v => v!==null && v!==undefined && v!=='';
+const qty = v => known(v) ? nf(v)+' KL' : 'Belum diisi';
+function mapsUrl(item){ const query=(item.nama||'')+' '+(item.alamat||'');return 'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(query)+(item.maps_place_id?'&query_place_id='+encodeURIComponent(item.maps_place_id):'');}
 function alertData(){
  return [...data.depot.filter(critical).map(x=>({key:x.id,title:x.nama+' · Stok kritis',note:nf(x.stok)+' KL tersedia'})),
  ...current().filter(r=>r.status==='Tertunda').map(r=>({key:r.id,title:r.id+' · '+r.tujuan,note:r.catatan||'Pengiriman tertunda'}))];
 }
 function progress(){
+ if(!data.depot.length)return '<p class="quiet">Belum ada terminal dalam database.</p>';
  return data.depot.map(x=>{
-  const pct=Math.round(x.stok/x.kapasitas*100);
-  return '<div class="progress-row"><div class="row"><strong>'+safe(x.nama)+'</strong>'+badge(critical(x)?'Kritis':'Normal')+'</div><div class="track" role="progressbar" aria-label="'+safe(x.nama)+'" aria-valuenow="'+pct+'"><span class="'+(critical(x)?'low':'')+'" style="width:'+pct+'%"></span></div><p class="quiet">'+nf(x.stok)+' / '+nf(x.kapasitas)+' KL · '+pct+'%</p></div>';
+  if(!known(x.stok)||!known(x.kapasitas)||x.kapasitas<=0) return '<div class="progress-row"><div class="row"><strong>'+safe(x.nama)+'</strong>'+badge('Belum diisi')+'</div><p class="quiet">Stok / Kapasitas: '+qty(x.stok)+' / '+qty(x.kapasitas)+'</p></div>';
+  const pct=Math.max(0,Math.min(100,Math.round(x.stok/x.kapasitas*100)));
+  return '<div class="progress-row"><div class="row"><strong>'+safe(x.nama)+'</strong>'+badge(critical(x)?'Kritis':'Normal')+'</div><div class="track" role="progressbar" aria-label="'+safe(x.nama)+'" aria-valuenow="'+pct+'"><span class="'+(critical(x)?'low':'')+'" style="width:'+pct+'%"></span></div><p class="quiet">'+qty(x.stok)+' / '+qty(x.kapasitas)+' · '+pct+'%</p></div>';
  }).join('');
 }
 function map(){
- const background=ASSETS.peta?'<img alt="" src="'+safe(ASSETS.peta)+'">':
- '<svg viewBox="0 0 600 250" preserveAspectRatio="none" aria-hidden="true"><path fill="var(--land)" stroke="var(--blue)" stroke-opacity=".32" stroke-width="2" d="M32 75L53 55 77 61 105 42 137 47 165 69 190 66 207 88 236 102 267 89 290 100 317 104 345 118 366 110 391 125 421 122 441 137 466 124 486 133 500 126 518 150 531 153 552 169 565 191 539 205 510 192 482 186 455 194 429 177 400 185 375 172 347 169 325 155 297 158 273 147 242 151 215 140 189 142 165 126 135 132 115 113 87 117 70 103 51 104zM474 103l20-10 24 3 25-12 20 9-10 14-47 8z"/><path fill="none" stroke="var(--blue)" stroke-width="2" stroke-dasharray="5 6" d="M174 72Q235 125 288 102T384 130T492 155"/><text x="27" y="223" fill="var(--muted)" font-size="15">LAUT JAWA · SKEMA JARINGAN</text></svg>';
- const points=[...data.depot,...data.spbu].map(p=>'<button class="pin '+(p.depot_id?'spbu':'')+'" style="left:'+Number(p.x)+'%;top:'+Number(p.y)+'%" data-detail="'+safe(p.id)+'" title="'+safe(p.nama)+'" aria-label="'+safe(p.nama)+'"></button>').join('');
- return '<div class="map">'+background+points+'</div><p class="quiet">● Depot &nbsp; <span style="color:var(--orangeink)">●</span> SPBU</p>';
+ // Tidak tampilkan titik pada gambar peta skematis karena koordinat aktual belum diverifikasi.
+ const selections=[...data.depot.slice(0,3),...data.spbu.slice(0,5)];
+ return '<div class="list" style="max-height:280px;overflow:auto">'+selections.map(x=>'<div class="list" style="margin:0"><p><strong>'+safe(x.nama)+'</strong></p><p class="quiet">'+safe(x.alamat||'Alamat belum diisi')+'</p><p><a href="'+safe(mapsUrl(x))+'" target="_blank" rel="noopener noreferrer">Lihat di Google Maps</a></p></div>').join('')+'</div><p class="quiet">Seluruh '+data.depot.length+' terminal dan '+data.spbu.length+' SPBU tersedia pada halaman data masing-masing. Ini bukan peta rute atau wilayah pasokan aktual.</p>';
 }
 // Formulir CRUD langsung terhubung ke Supabase. Hak tulis diverifikasi ulang lewat RLS.
 const EDITORS={
  pengiriman:{title:'Pengiriman BBM',fields:[['id','ID Pengiriman','text'],['tanggal','Tanggal','date'],['spbu_id','Tujuan SPBU','spbu'],['armada_id','Armada','armada'],['produk','Jenis BBM','produk'],['volume','Volume (KL)','number'],['status','Status','status'],['catatan','Catatan','text']]},
- depot:{title:'Depot dan stok',fields:[['id','ID Depot','text'],['nama','Nama depot','text'],['wilayah','Wilayah','text'],['kapasitas','Kapasitas (KL)','number'],['stok','Stok saat ini (KL)','number'],['stok_lalu','Stok periode lalu (KL)','number'],['x','Posisi peta X (0–100)','coordinate'],['y','Posisi peta Y (0–100)','coordinate']]},
+ depot:{title:'Terminal BBM dan stok',fields:[['id','ID Terminal','text'],['nama','Nama terminal','text'],['wilayah','Provinsi','province'],['kab_kota','Kabupaten/Kota','text'],['alamat','Alamat lengkap','text'],['kapasitas','Kapasitas (KL) — boleh kosong','optionalnumber'],['stok','Stok sekarang (KL) — boleh kosong','optionalnumber'],['stok_lalu','Stok sebelumnya (KL) — boleh kosong','optionalnumber']]},
  armada:{title:'Armada',fields:[['id','ID Armada','text'],['plat','Nomor polisi','text'],['driver','Nama pengemudi','text'],['kapasitas','Kapasitas (KL)','number'],['status','Status armada','fleetstatus']]},
- spbu:{title:'SPBU',fields:[['id','ID SPBU','text'],['nama','Nama SPBU','text'],['depot_id','Depot asal','depot'],['x','Posisi peta X (0–100)','coordinate'],['y','Posisi peta Y (0–100)','coordinate']]}
+ spbu:{title:'SPBU',fields:[['id','Kode SPBU (ID)','text'],['nama','Nama SPBU','text'],['alamat','Alamat lengkap','text'],['kab_kota','Kabupaten/Kota','text'],['provinsi','Provinsi','province'],['depot_id','Terminal pemasok (opsional)','optionaldepot']]}
 };
 const editButton=(kind,id)=>operator? '<button data-edit="'+safe(kind)+'" data-record="'+safe(id)+'">Edit</button>':'';
 const deleteButton=(kind,id)=>operator?'<button class="danger" data-delete="'+safe(kind)+'" data-record="'+safe(id)+'">Hapus</button>':'';
@@ -250,35 +224,40 @@ const addButton=kind=>operator?'<button class="primary" data-add="'+kind+'">+ Ta
 const recordSet=kind=>data[kind]||[];
 function optList(list,value){return list.map(([id,label])=>'<option value="'+safe(id)+'" '+(String(id)===String(value)?'selected':'')+'>'+safe(label)+'</option>').join('');}
 function editorField(kind,definition,record,adding){
- const [key,label,type]=definition, val=record?.[key]??(key==='tanggal'?today:key==='status'?(kind==='armada'?'Aktif':'Dikirim'):key==='catatan'?'':key==='x'||key==='y'?50:'');
+ const [key,label,type]=definition, val=record?.[key]??(key==='tanggal'?today:key==='status'?(kind==='armada'?'Aktif':'Dikirim'):''), optional=['optionalnumber','optionaldepot','catatan'].includes(type)||key==='catatan';
  const locked=key==='id'&&!adding;
- const choices=type==='spbu'?data.spbu.map(r=>[r.id,r.nama+' · '+r.id]):type==='armada'?data.armada.map(r=>[r.id,r.plat+' · '+r.driver]):type==='depot'?data.depot.map(r=>[r.id,r.nama]):type==='produk'?DATA.produk.map(v=>[v,v]):type==='status'?DATA.statuses.map(v=>[v,v]):type==='fleetstatus'?['Aktif','Siaga','Perawatan'].map(v=>[v,v]):null;
- const control=choices?'<select name="'+key+'" required>'+optList(choices,val)+'</select>':'<input name="'+key+'" type="'+(type==='number'||type==='coordinate'?'number':type==='date'?'date':'text')+'" value="'+safe(val)+'" '+(locked?'readonly':'required')+' '+(type==='number'?'min="'+(key==='stok'||key==='stok_lalu'?0:1)+'" step="1"':type==='coordinate'?'min="0" max="100" step="1"':'')+' '+(key==='catatan'?'maxlength="240"':'maxlength="120"')+'>';
- return '<label class="'+(key==='catatan'?'wide':'')+'">'+safe(label)+control+'</label>';
+ const choices=type==='spbu'?data.spbu.map(r=>[r.id,r.nama+' — '+r.alamat]):type==='armada'?data.armada.map(r=>[r.id,r.plat+' · '+r.driver]):type==='depot'||type==='optionaldepot'?data.depot.map(r=>[r.id,r.nama]):type==='province'?[['Jawa Tengah','Jawa Tengah'],['Jawa Timur','Jawa Timur']]:type==='produk'?DATA.produk.map(v=>[v,v]):type==='status'?DATA.statuses.map(v=>[v,v]):type==='fleetstatus'?['Aktif','Siaga','Perawatan'].map(v=>[v,v]):null;
+ const control=choices?'<select name="'+key+'" '+(!optional?'required':'')+'>'+(optional?'<option value="">Belum ditetapkan</option>':'')+optList(choices,val)+'</select>':'<input name="'+key+'" type="'+(['number','optionalnumber'].includes(type)?'number':type==='date'?'date':'text')+'" value="'+safe(val)+'" '+(locked?'readonly':'')+' '+(optional?'':'required')+' '+(['number','optionalnumber'].includes(type)?'min="'+(['stok','stok_lalu'].includes(key)?0:1)+'" step="1"':'')+' '+(key==='catatan'?'maxlength="240"':'maxlength="280"')+'>';
+ return '<label class="'+(key==='catatan'||key==='alamat'?'wide':'')+'">'+safe(label)+control+'</label>';
 }
 function openEditor(kind,id=null){
- if(!operator||!db||source.startsWith('Data lokal'))return;
+ if(!operator||!db||!source.startsWith('Supabase'))return;
  const existing=id?recordSet(kind).find(r=>r.id===id):null;
  if(id&&!existing)return;
- const adding=!existing, title=(adding?'Tambah ':'Edit ')+EDITORS[kind].title;
+ const adding=!existing, title=(adding?'Tambah ':'Edit ')+EDITORS[kind].title; if(kind==='pengiriman'&&data.armada.length===0){openModal('Armada belum ada','<p>Tambahkan armada beserta driver melalui menu Armada terlebih dahulu sebelum membuat pengiriman.</p>');return;}
  openModal(title,'<form id="crud-form" data-kind="'+kind+'" data-original="'+safe(id||'')+'"><div class="editor-grid">'+EDITORS[kind].fields.map(f=>editorField(kind,f,existing,adding)).join('')+'</div><div class="editor-actions"><button type="button" data-action="close">Batal</button><button class="primary" type="submit">'+(adding?'Tambah data':'Simpan perubahan')+'</button></div><p class="message" role="alert"></p></form>');
  $('dialog').classList.add('editor-dialog');
 }
 async function saveRecord(form){
  if(!operator||!user||!db)throw new Error('Hanya operator terdaftar yang boleh mengubah data.');
- const kind=form.dataset.kind, original=form.dataset.original, payload={};
+ const kind=form.dataset.kind, original=form.dataset.original, payload={}, fields=new FormData(form);
  for(const [key,,type] of EDITORS[kind].fields){
-  const raw=String(new FormData(form).get(key)??'').trim();
-  if(!raw&&key!=='catatan')throw new Error('Semua kolom wajib diisi kecuali catatan.');
-  payload[key]=type==='number'||type==='coordinate'?Number(raw):raw;
-  if((type==='number'||type==='coordinate')&&(!Number.isInteger(payload[key])||(type==='coordinate'&&(payload[key]<0||payload[key]>100))))throw new Error('Isian angka harus bilangan bulat yang valid.');
+  const raw=String(fields.get(key)??'').trim(), optional=['optionalnumber','optionaldepot'].includes(type)||key==='catatan';
+  if(!raw&&!optional)throw new Error('Kolom wajib harus diisi.');
+  payload[key]=!raw&&optional?(key==='catatan'?'':null):['number','optionalnumber'].includes(type)?Number(raw):raw;
+  if(['number','optionalnumber'].includes(type)&&payload[key]!==null&&(!Number.isInteger(payload[key])||payload[key]<(key==='stok'||key==='stok_lalu'?0:1)))throw new Error('Volume dan stok harus bilangan bulat yang valid.');
  }
- if(kind==='depot'&&(payload.stok>payload.kapasitas||payload.stok_lalu>payload.kapasitas))throw new Error('Stok tidak boleh lebih besar dari kapasitas.');
+ if(kind==='depot'){
+  const {kapasitas,stok,stok_lalu}=payload;
+  if((stok!==null||stok_lalu!==null)&&kapasitas===null)throw new Error('Isi kapasitas sebelum mengisi stok.');
+  if(kapasitas!==null&&((stok!==null&&stok>kapasitas)||(stok_lalu!==null&&stok_lalu>kapasitas)))throw new Error('Stok tidak boleh lebih besar dari kapasitas.');
+ }
+ if(kind==='spbu'&&!original)payload.kode=payload.id;
  if(!original&&recordSet(kind).some(r=>r.id===payload.id))throw new Error('ID sudah digunakan. Pilih ID yang lain.');
  if(original)delete payload.id;
  const query=db.from('bbm_'+kind);
  const {data:updated,error}=await (original?query.update(payload).eq('id',original):query.insert(payload)).select('id').maybeSingle();
- if(error)throw new Error(error.code==='23503'?'Referensi depot, SPBU, atau armada tidak valid.':error.code==='23505'?'ID atau nomor polisi sudah dipakai.':error.message);
+ if(error)throw new Error(error.code==='23503'?'Referensi terminal, SPBU, atau armada tidak valid.':error.code==='23505'?'ID atau kode sudah dipakai.':error.message);
  if(!updated)throw new Error('Perubahan ditolak. Periksa izin akun operator.');
  $('dialog').close();$('dialog').classList.remove('editor-dialog');
  await refresh();$('announcement').textContent='Data '+EDITORS[kind].title+' berhasil '+(original?'diperbarui.':'ditambahkan.');
@@ -293,7 +272,7 @@ async function removeRecord(kind,id){
  if(!deleted){openModal('Gagal menghapus','<p>Tidak memiliki izin untuk menghapus data ini.</p>');return;}
  await refresh();$('announcement').textContent='Data berhasil dihapus.';
 }
-function depotList(){return '<section class="card table-card"><div class="management-head"><h2>Kelola depot dan stok</h2>'+addButton('depot')+'</div><div class="scroll"><table><thead><tr><th>Depot</th><th>Wilayah</th><th>Stok / Kapasitas</th>'+(operator?'<th>Aksi</th>':'')+'</tr></thead><tbody>'+data.depot.map(r=>'<tr><td>'+safe(r.nama)+'</td><td>'+safe(r.wilayah)+'</td><td>'+nf(r.stok)+' / '+nf(r.kapasitas)+' KL</td>'+(operator?'<td><div class="manage-actions">'+editButton('depot',r.id)+deleteButton('depot',r.id)+'</div></td>':'')+'</tr>').join('')+'</tbody></table></div></section>';}
+function depotList(){return '<section class="card table-card"><div class="management-head"><h2>Kelola terminal BBM dan stok</h2>'+addButton('depot')+'</div><div class="scroll"><table><thead><tr><th>Terminal</th><th>Wilayah</th><th>Alamat</th><th>Stok / Kapasitas</th>'+(operator?'<th>Aksi</th>':'')+'</tr></thead><tbody>'+data.depot.map(r=>'<tr><td>'+safe(r.nama)+'</td><td>'+safe(r.kab_kota||r.wilayah)+'</td><td class="cell-address">'+safe(r.alamat||'Belum diisi')+' <a href="'+safe(mapsUrl(r))+'" target="_blank" rel="noopener noreferrer">Maps</a></td><td>'+qty(r.stok)+' / '+qty(r.kapasitas)+'</td>'+(operator?'<td><div class="manage-actions">'+editButton('depot',r.id)+deleteButton('depot',r.id)+'</div></td>':'')+'</tr>').join('')+'</tbody></table></div></section>';}
 const columns=[['id','ID'],['tanggal','Tanggal'],['tujuan','Tujuan'],['produk','Jenis BBM'],['volume','Volume (KL)'],['driver','Driver'],['status','Status']];
 function options(values,selected){return values.map(v=>'<option '+(v===selected?'selected':'')+'>'+safe(v)+'</option>').join('')}
 function table(){
@@ -308,20 +287,21 @@ function tableRows(){
  $('table-result').innerHTML='<div class="scroll" tabindex="0" aria-label="Tabel pengiriman dapat digulir"><table><thead><tr>'+th+'</tr></thead><tbody>'+(body||'<tr><td colspan="'+(operator?8:7)+'">Tidak ada pengiriman yang cocok.</td></tr>')+'</tbody></table></div><div class="row pager"><span class="quiet">'+nf(list.length)+' pengiriman · Halaman '+state.page+' dari '+last+'</span><div><button data-action="prev" '+(state.page===1?'disabled':'')+'>Sebelumnya</button> <button data-action="next" '+(state.page===last?'disabled':'')+'>Berikutnya</button></div></div>';
 }
 function metricDelta(value,old,invert){
- if(old===null)return '<span class="quiet">Saat ini</span>';
+ if(old===null||value===null)return '<span class="quiet">Belum tersedia</span>';
  if(!old)return '<span class="quiet">'+(value?'Baru':'Tetap')+'</span>';
  const delta=Math.round((value-old)/old*100);
  return '<span class="badge '+(delta===0?'':(delta>0)!==invert?'ok':'bad')+'" title="Perubahan dari periode pembanding">'+(delta>0?'↑ +':delta<0?'↓ ':'')+delta+'%</span>';
 }
 function dashboard(){
  const [start,prevStart,prevEnd]=periodRange(), now=current(), before=inRange(prevStart,prevEnd);
- const values=[sum(delivered(now)),data.depot.reduce((s,d)=>s+d.stok,0),data.armada.filter(r=>r.status==='Aktif').length,countSPBU(now),now.filter(r=>r.status==='Tertunda').length];
- const past=[sum(delivered(before)),data.depot.reduce((s,d)=>s+d.stok_lalu,0),null,countSPBU(before),before.filter(r=>r.status==='Tertunda').length];
- const cards=TEKS.kpi.map(([label,note,i,unit],n)=>'<article class="card kpi"><div class="row"><div class="kpi-icon">'+icon(i)+'</div>'+metricDelta(values[n],past[n],n===4)+'</div><h2>'+label+'</h2><strong data-count="'+values[n]+'">'+nf(values[n])+'</strong><span class="unit">'+unit+'</span><p class="quiet">'+note+'</p></article>').join('');
+ const allStocks=data.depot.length>0&&data.depot.every(d=>known(d.stok)), allOldStocks=data.depot.length>0&&data.depot.every(d=>known(d.stok_lalu));
+ const values=[sum(delivered(now)),allStocks?data.depot.reduce((s,d)=>s+Number(d.stok),0):null,data.armada.filter(r=>r.status==='Aktif').length,countSPBU(now),now.filter(r=>r.status==='Tertunda').length];
+ const past=[sum(delivered(before)),allOldStocks?data.depot.reduce((s,d)=>s+Number(d.stok_lalu),0):null,null,countSPBU(before),before.filter(r=>r.status==='Tertunda').length];
+ const cards=TEKS.kpi.map(([label,note,i,unit],n)=>'<article class="card kpi"><div class="row"><div class="kpi-icon">'+icon(i)+'</div>'+metricDelta(values[n],past[n],n===4)+'</div><h2>'+label+'</h2><strong '+(values[n]!==null?'data-count="'+values[n]+'"':'')+'>'+(values[n]===null?'—':nf(values[n]))+'</strong><span class="unit">'+(values[n]===null?'':unit)+'</span><p class="quiet">'+note+'</p></article>').join('');
  const chart=(key)=>'<article class="card"><h2>'+TEKS[key][0]+'</h2><div class="chart" id="'+key+'-wrap"><canvas id="'+key+'" role="img" aria-label="'+TEKS[key][0]+'"></canvas></div><p class="quiet chart-note">'+TEKS[key][1]+'</p></article>';
  const recent=[...rows].sort((a,b)=>b.tanggal.localeCompare(a.tanggal)||b.id.localeCompare(a.id)).slice(0,5);
  return '<section class="hero"><div class="row"><div><div class="tag">Operasional · Distribusi energi</div><h1>'+TEKS.judul+'</h1><p>'+TEKS.intro+'</p><p class="quiet">'+dateLabel(start)+' — '+dateLabel(today)+' · WIB</p></div><span class="badge warm">'+safe(source)+'</span></div></section>'+
- '<section class="kpis" aria-label="Ringkasan KPI">'+cards+'</section>'+
+ '<section class="kpis" aria-label="Ringkasan KPI">'+cards+'</section>'+(rows.length===0?'<section class="card table-card"><h2>Siap untuk data operasional</h2><p class="quiet">Belum ada riwayat pengiriman dan armada. Operator dapat menambahkan armada terlebih dahulu, kemudian membuat pengiriman. Data stok terminal juga belum dimasukkan.</p></section>':'')+
  '<section class="grid">'+chart('tren')+chart('produk')+'</section>'+
  '<section class="grid grid-even">'+chart('wilayah')+'<article class="card">'+sectionTitle(TEKS.kapasitas)+progress()+'</article></section>'+
  '<section class="grid"><article class="card">'+sectionTitle(TEKS.peta)+map()+'</article><article class="card"><h2>Peringatan</h2><ul class="list">'+(alertData().slice(0,6).map(a=>'<li><button data-detail="'+safe(a.key)+'"><b>'+safe(a.title)+'</b><p class="quiet">'+safe(a.note)+'</p></button></li>').join('')||'<li>Tidak ada peringatan.</li>')+'</ul></article></section>'+
@@ -341,6 +321,7 @@ function drawCharts(){
  const colors=['--blue','--chart2','--chart3','--chart4'].map(color);
  for(const [id,g] of Object.entries(chartData())){
   const canvas=$(id);if(!canvas)continue;
+  if(rows.length===0){$(id+'-wrap').innerHTML='<p class="quiet" style="padding:34px 12px;text-align:center">Belum ada data pengiriman. Grafik akan tampil setelah data dicatat.</p>';continue;}
   const summary=g.labels.map((x,i)=>x+' '+nf(g.values[i])+' KL').join(', ');
   canvas.setAttribute('aria-label',TEKS[id][0]+'. '+summary);
   if(!window.Chart){
@@ -362,10 +343,10 @@ function render(){
  if(view==='Dashboard')body=dashboard();
  if(view==='Distribusi')body=titleBlock(view,'Cari, saring, dan buka detail pengiriman.')+table();
  if(view==='Stok Depot')body=titleBlock(view,'Pantau stok dan kapasitas penyimpanan tiap depot.')+'<div class="grid grid-even"><section class="card">'+sectionTitle(TEKS.kapasitas)+progress()+'</section><section class="card">'+sectionTitle(TEKS.peta)+map()+'</section></div>'+depotList();
- if(view==='Armada')body=titleBlock(view,'Daftar truk tangki, pengemudi, dan status kesiapan.')+'<div class="management-head">'+addButton('armada')+'</div><div class="cards-view">'+data.armada.map(r=>'<article class="card"><div class="row"><h2>'+safe(r.plat)+'</h2>'+badge(r.status)+'</div><p>'+safe(r.driver)+'</p><p class="quiet">Kapasitas '+nf(r.kapasitas)+' KL</p>'+(operator?'<div class="manage-actions">'+editButton('armada',r.id)+deleteButton('armada',r.id)+'</div>':'')+'</article>').join('')+'</div>';
- if(view==='SPBU')body=titleBlock(view,'Daftar titik layanan SPBU dan depot asal.')+'<div class="management-head">'+addButton('spbu')+'</div><div class="cards-view">'+data.spbu.map(r=>'<article class="card"><h2>'+safe(r.nama)+'</h2><p class="quiet">'+safe(data.depot.find(x=>x.id===r.depot_id)?.nama)+'</p><div class="manage-actions"><button data-detail="'+safe(r.id)+'">Detail</button>'+editButton('spbu',r.id)+deleteButton('spbu',r.id)+'</div></article>').join('')+'</div>';
+ if(view==='Armada')body=titleBlock(view,'Daftar truk tangki, pengemudi, dan status kesiapan.')+'<div class="management-head">'+addButton('armada')+'</div><div class="cards-view">'+data.armada.map(r=>'<article class="card"><div class="row"><h2>'+safe(r.plat)+'</h2>'+badge(r.status)+'</div><p>'+safe(r.driver)+'</p><p class="quiet">Kapasitas '+nf(r.kapasitas)+' KL</p>'+(operator?'<div class="manage-actions">'+editButton('armada',r.id)+deleteButton('armada',r.id)+'</div>':'')+'</article>').join('')+'</div>'+(data.armada.length?'':'<section class="card">Belum ada armada atau driver yang terdaftar.</section>');
+ if(view==='SPBU')body=titleBlock(view,'SPBU Pertamina pilihan di 22 kabupaten/kota Jawa Tengah dan Jawa Timur. Kode dan alamat dari sumber peta bisnis serta ESDM.')+'<div class="management-head">'+addButton('spbu')+'</div><div class="cards-view">'+data.spbu.map(r=>'<article class="card"><h2>'+safe(r.nama)+'</h2><p class="quiet">'+safe(r.alamat||'Alamat belum diisi')+'</p><p class="quiet">Terminal pemasok: '+safe(data.depot.find(x=>x.id===r.depot_id)?.nama||'Belum ditetapkan')+'</p><div class="manage-actions"><button data-detail="'+safe(r.id)+'">Detail</button><a href="'+safe(mapsUrl(r))+'" target="_blank" rel="noopener noreferrer">Google Maps</a>'+editButton('spbu',r.id)+deleteButton('spbu',r.id)+'</div></article>').join('')+'</div>';
  if(view==='Laporan')body=titleBlock(view,'Ekspor data sesuai periode, pencarian, dan filter tabel.')+table();
- if(view==='Pengaturan')body=titleBlock(view,'Sesuaikan tampilan dan periksa koneksi data.')+'<section class="card table-card"><h2>Preferensi</h2><ul class="list"><li><div class="row"><span>Tampilan '+(document.documentElement.dataset.theme==='dark'?'gelap':'terang')+'</span><button data-action="theme">Ganti tema</button></div></li><li><div class="row"><span>'+safe(source)+'</span><button data-action="refresh">Muat ulang data</button></div></li><li><div class="row"><span>'+(operator?'Operator · Bisa tambah, edit, hapus data':'Akses baca data simulasi')+'</span><button data-action="profile">Profil</button></div></li></ul></section>';
+ if(view==='Pengaturan')body=titleBlock(view,'Sesuaikan tampilan dan periksa koneksi data.')+'<section class="card table-card"><h2>Preferensi</h2><ul class="list"><li><div class="row"><span>Tampilan '+(document.documentElement.dataset.theme==='dark'?'gelap':'terang')+'</span><button data-action="theme">Ganti tema</button></div></li><li><div class="row"><span>'+safe(source)+'</span><button data-action="refresh">Muat ulang data</button></div></li><li><div class="row"><span>'+(operator?'Operator · Bisa tambah, edit, hapus data':'Akses baca referensi lokasi dan operasional')+'</span><button data-action="profile">Profil</button></div></li></ul></section>';
  $('content').innerHTML='<div class="fade">'+body+'</div>'+footer();
  tableRows();drawCharts();
  if(!reduceMotion&&view==='Dashboard'){
@@ -386,9 +367,9 @@ function showDetail(id){
   openModal(r.id,'<p><b>'+safe(r.tujuan)+'</b> · '+dateLabel(r.tanggal)+'</p><p>'+safe(r.produk)+' · '+nf(r.volume)+' KL · '+safe(r.driver)+'</p><p>'+badge(r.status)+'</p><p>'+safe(r.catatan)+'</p>'+edit);return;
  }
  const depot=data.depot.find(x=>x.id===id);
- if(depot){openModal(depot.nama,'<p>'+safe(depot.wilayah)+'</p><p>Stok '+nf(depot.stok)+' KL dari '+nf(depot.kapasitas)+' KL</p><p>'+badge(critical(depot)?'Kritis':'Normal')+'</p>');return;}
+ if(depot){openModal(depot.nama,'<p>'+safe(depot.alamat||'Alamat belum diisi')+'</p><p>Stok '+qty(depot.stok)+' / kapasitas '+qty(depot.kapasitas)+'</p>');return;}
  const spbu=data.spbu.find(x=>x.id===id);
- if(spbu)openModal(spbu.nama,'<p>Depot asal · '+safe(data.depot.find(x=>x.id===spbu.depot_id)?.nama)+'</p><p>'+nf(current().filter(x=>x.spbu_id===id&&x.status==='Tiba').length)+' pengiriman tiba pada periode ini</p>');
+ if(spbu)openModal(spbu.nama,'<p>'+safe(spbu.alamat||'Alamat belum diisi')+'</p><p>Terminal pemasok · '+safe(data.depot.find(x=>x.id===spbu.depot_id)?.nama||'Belum ditetapkan')+'</p><p><a href="'+safe(mapsUrl(spbu))+'" target="_blank" rel="noopener noreferrer">Lihat di Google Maps</a></p><p>'+nf(current().filter(x=>x.spbu_id===id&&x.status==='Tiba').length)+' pengiriman tiba pada periode ini</p>');
 }
 function csv(){
  const quote=x=>'"'+String(x??'').replace(/^[=+@\-\t\r\n]/,m=>"'"+m).replaceAll('"','""')+'"';
@@ -462,7 +443,7 @@ document.addEventListener('click',event=>{
  case 'prev':state.page--;tableRows();document.querySelector('[data-action=next]:not(:disabled)')?.focus();break;
  case 'next':state.page++;tableRows();document.querySelector('[data-action=prev]:not(:disabled)')?.focus();break;
  case 'seen':state.seen=true;header();$('notifications').open=false;break;
- case 'refresh':if(db){control.disabled=true;refresh()}else openModal('Koneksi tidak tersedia','<p>Data lokal tetap bisa dibuka. Muat ulang halaman saat internet tersedia.</p>');break;
+ case 'refresh':if(db){refresh()}else openModal('Koneksi tidak tersedia','<p>Tidak ada data lokal pengganti. Periksa koneksi Supabase.</p>');break;
  }
 });
 document.addEventListener('input',event=>{
@@ -504,7 +485,7 @@ window.addEventListener('DOMContentLoaded',async()=>{
  document.querySelectorAll('[data-brand]').forEach(el=>el.innerHTML=brand());
  document.documentElement.style.setProperty('--login-image','url("'+ASSETS.loginBg+'")');
  $('avatar').src=ASSETS.avatar;$('menu').innerHTML=icon('menu');$('bell-icon').innerHTML=icon('bell');
- theme(local('getItem','theme')==='dark'?'dark':'light');seed();joinData();
+ theme(local('getItem','theme')==='dark'?'dark':'light');joinData();
  if(window.supabase&&CONFIG.key.startsWith('sb_publishable_')){
   try{
    const authStorage={
