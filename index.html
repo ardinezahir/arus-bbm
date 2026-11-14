@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="Dashboard Monitoring Distribusi BBM. Pantau pengiriman, stok depot, armada, dan SPBU dalam satu dashboard operasional.">
+<meta name="description" content="Arus BBM adalah dashboard monitoring distribusi bahan bakar minyak untuk memantau pengiriman, stok depot, armada, dan layanan SPBU.">
 <meta name="robots" content="index,follow">
-<title>Arus BBM | Dashboard Monitoring Distribusi BBM</title>
+<title>Monitoring Distribusi BBM | Dashboard Arus BBM</title>
  <link rel="canonical" 
   href="https://arusbbm.netlify.app/">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -25,21 +25,21 @@
 .management-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}.manage-actions{display:flex;gap:7px;align-items:center;flex-wrap:wrap}.manage-actions button{font-size:12px;padding:7px 10px}.danger{border-color:var(--red);color:var(--red)}.danger:hover{background:var(--redbg)}.editor-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.editor-grid label{display:grid;gap:5px;font-weight:600;font-size:12px}.editor-grid input,.editor-grid select{min-width:0;width:100%;margin:0}.editor-grid .wide{grid-column:1/-1}dialog.editor-dialog{width:min(620px,calc(100% - 28px));max-height:88vh;overflow-y:auto}.editor-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;margin-top:12px}.notice{padding:10px 12px;border-radius:10px;background:var(--bluebg);color:var(--blue);margin-bottom:12px;font-size:13px}@media(max-width:570px){.editor-grid{grid-template-columns:1fr}.management-head{align-items:flex-start}}
 .cell-address{white-space:normal;min-width:260px;max-width:520px}.cards-view a{align-self:center}.list a{font-weight:600}#dialog.editor-dialog{width:min(700px,calc(100% - 28px))}
 #action-status{position:fixed;right:18px;bottom:18px;z-index:300;background:var(--surface);border:1px solid var(--green);border-left:5px solid var(--green);box-shadow:var(--shadow);padding:14px 16px;border-radius:10px;max-width:min(470px,calc(100vw - 36px));font-weight:600;line-height:1.5}#action-status.error{border-color:var(--red);border-left-color:var(--red)}.save-message{position:sticky;top:0;z-index:2;background:var(--surface);padding:6px 0;white-space:pre-wrap}#crud-form .save-hint{font-size:12px;color:var(--muted);margin-bottom:6px}
+.top #date-control{font-size:.8rem;white-space:nowrap}.top #shipment-date{width:auto;min-width:0}@media(max-width:570px){.top #date-control{order:4;flex-basis:100%}}
 </style>
 </head>
 <body>
 <!-- GANTI GAMBAR DI SINI melalui ASSETS.loginBg dan ASSETS.logo -->
 <section class="login" id="login">
- <div class="login-visual"><div class="brand" data-brand></div><div><div class="tag">Operasi distribusi energi</div><h1>Dashboard Monitoring Distribusi BBM</h1><p>Pantau pengiriman, stok depot, armada, dan layanan SPBU dari satu tempat.</p></div><small>Foto <a style="color:inherit" href="https://commons.wikimedia.org/wiki/File:MiRO5.jpg" target="_blank" rel="noopener">MiRO5 oleh Ikar.us</a> · <a style="color:inherit" href="https://creativecommons.org/licenses/by/2.0/de/deed.en" target="_blank" rel="noopener">CC BY 2.0 DE</a> · Dipotong dan diberi gradasi</small></div>
+ <div class="login-visual"><div class="brand" data-brand></div><div><h1>Dashboard Monitoring Distribusi BBM</h1><p>Arus BBM membantu memantau distribusi bahan bakar minyak (BBM) dari satu dashboard. Lihat status pengiriman, stok depot, armada, dan layanan Stasiun Pengisian Bahan Bakar Umum (SPBU).</p></div><small><a style="color:inherit" href="https://commons.wikimedia.org/wiki/File:MiRO5.jpg" target="_blank" rel="noopener">MiRO5 oleh Ikar.us</a> · <a style="color:inherit" href="https://creativecommons.org/licenses/by/2.0/de/deed.en" target="_blank" rel="noopener">CC BY 2.0 DE</a> · Foto diubah</small></div>
  <div class="login-content"><button class="theme-login" data-action="theme" aria-label="Ganti tema">◐</button>
  <form id="login-form" class="login-form" method="post" onsubmit="return false" novalidate>
- <div><h2>Masuk ke Arus BBM</h2><p class="quiet">Masuk menggunakan akun yang dibuat melalui Supabase Authentication.</p></div>
+ <div><h2>Masuk ke Arus BBM</h2></div>
  <label>Email akun<input id="username" name="username" type="email" autocomplete="username" placeholder="nama@email.com" required></label>
  <label for="password">Kata sandi</label><div class="password"><input id="password" name="password" type="password" autocomplete="current-password" placeholder="Masukkan kata sandi" required><button type="button" id="see" aria-pressed="false" data-action="password">Lihat</button></div>
  <div class="login-extra"><label><input id="remember" type="checkbox"> Ingat saya</label><button type="button" class="link" data-action="forgot">Lupa password?</button></div>
  <p class="message" id="login-message" role="alert"></p><button class="primary" id="submit" type="submit">Masuk</button>
  <button type="button" data-action="guest">Lanjutkan sebagai tamu</button>
- <p class="quiet">Akses tamu hanya untuk melihat dashboard, tanpa hak mengubah data.</p>
  </form></div>
 </section>
 <section id="app" class="app" hidden>
@@ -50,7 +50,8 @@
  <button data-action="menu" id="menu" aria-label="Buka atau lipat menu" aria-controls="sidebar" aria-expanded="true"></button>
  <span id="top-title" class="top-title">Dashboard</span>
  <input id="global-search" type="search" aria-label="Cari pengiriman" placeholder="Cari ID, SPBU, driver…">
- <select id="period" aria-label="Periode pengiriman"><option value="1">Hari ini</option><option value="7">7 hari</option><option value="30" selected>30 hari</option><option value="year">Tahun ini</option></select>
+ <select id="period" aria-label="Periode pengiriman"><option value="1">Hari ini</option><option value="7">7 hari</option><option value="30" selected>30 hari</option><option value="year">Tahun ini</option><option value="date">Pilih tanggal</option></select>
+ <label id="date-control" hidden>Tanggal pengiriman <input id="shipment-date" type="date" required></label>
  <details id="notifications"><summary class="bell" aria-label="Notifikasi"><span id="bell-icon"></span><b id="bell-count"></b></summary><div id="notification-list" class="popover"></div></details>
  <button data-action="theme" aria-label="Ganti tema">◐</button>
  <!-- GANTI GAMBAR DI SINI melalui ASSETS.avatar -->
@@ -76,7 +77,7 @@ const TEKS = {
  brand:'Arus BBM', subbrand:'Monitoring distribusi', judul:'Dashboard Monitoring Distribusi BBM',
  intro:'Pantau arus pengiriman dan tindak lanjuti kendala operasional.',
  kpi:[['Total Distribusi','Volume BBM berstatus Tiba pada periode terpilih.','drop','KL'],
- ['Stok Tersedia','Ditampilkan setelah stok seluruh terminal diinput.','box','KL'],
+ ['Stok Tersedia','Stok tercatat saat ini, jika seluruh terminal sudah diisi.','box','KL'],
  ['Truk Aktif','Unit armada dengan status Aktif saat ini.','truck','unit'],
  ['SPBU Terlayani','SPBU unik dengan pengiriman berstatus Tiba.','pin','SPBU'],
  ['Keterlambatan','Pengiriman berstatus Tertunda pada periode terpilih.','alert','pengiriman']],
@@ -106,7 +107,7 @@ const $ = id => document.getElementById(id);
 const safe = value => String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt = new Intl.NumberFormat('id-ID');
 const nf = value => fmt.format(value);
-const dateLabel = value => new Intl.DateTimeFormat('id-ID',{dateStyle:'medium',timeZone:'UTC'}).format(new Date(value+'T12:00:00Z'));
+const dateLabel = value => new Intl.DateTimeFormat('id-ID',{dateStyle:'full',timeZone:'UTC'}).format(new Date(value+'T12:00:00Z'));
 const today = new Intl.DateTimeFormat('sv-SE',{timeZone:'Asia/Jakarta',dateStyle:'short'}).format(new Date());
 const shift = (date,offset) => new Date(Date.parse(date+'T12:00:00Z')+offset*86400000).toISOString().slice(0,10);
 const monthAt = offset => new Date(Date.UTC(+today.slice(0,4),+today.slice(5,7)-1+offset,1)).toISOString().slice(0,7);
@@ -116,7 +117,7 @@ const local = (method,key,value) => storage('localStorage',method,'arus-bbm:'+ke
 const temp = (method,key,value) => storage('sessionStorage',method,'arus-bbm:'+key,value);
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let db, user=null, operator=false, source='Menghubungkan Supabase', charts=[], data=DATA, rows=[], loadSequence=0;
-let state={view:'Dashboard',period:'30',query:'',status:'',product:'',page:1,sort:'tanggal',direction:-1,seen:false};
+let state={view:'Dashboard',period:'30',date:today,query:'',status:'',product:'',page:1,sort:'tanggal',direction:-1,seen:false};
 let recovery=false;
 let lastConnectionError='';
 function notify(message,isError=false){
@@ -181,12 +182,17 @@ async function refresh(){
  joinData(); if(!$('app').hidden)render();return true;
 }
 function periodRange(){
+ if(state.period==='date')return [state.date,state.date,shift(state.date,-1),shift(state.date,-1)];
  const start=state.period==='year'?today.slice(0,4)+'-01-01':shift(today,1-Number(state.period));
  const days=Math.round((Date.parse(today)-Date.parse(start))/86400000)+1;
- return [start,shift(start,-days),shift(start,-1)];
+ return [start,today,shift(start,-days),shift(start,-1)];
 }
 function inRange(a,b){return rows.filter(r=>r.tanggal>=a&&r.tanggal<=b)}
-function current(){return inRange(periodRange()[0],today)}
+function current(){const [start,end]=periodRange();return inRange(start,end)}
+function periodLabel(){
+ const [start,end]=periodRange();
+ return (start===end?dateLabel(start):dateLabel(start)+' – '+dateLabel(end))+' · WIB';
+}
 const delivered = rs => rs.filter(r=>r.status==='Tiba');
 const sum = rs => rs.reduce((s,r)=>s+r.volume,0);
 const countSPBU = rs => new Set(delivered(rs).map(r=>r.spbu_id)).size;
@@ -212,6 +218,8 @@ function syncMenu(){
 }
 function header(){
  $('top-title').textContent=state.view;
+ $('date-control').hidden=state.period!=='date';
+ $('shipment-date').value=state.date;
  $('profile-label').textContent=operator?'Operator':user?.email?'Pengguna':'Tamu';
  $('source-side').textContent=source;
  $('nav').innerHTML=nav.map(([v,i])=>'<button data-view="'+v+'" aria-label="'+v+'" title="'+v+'" '+(v===state.view?'aria-current="page"':'')+'>'+icon(i)+'<span class="nav-label">'+v+'</span></button>').join('');
@@ -313,7 +321,7 @@ function depotList(){return '<section class="card table-card"><div class="manage
 const columns=[['id','ID'],['tanggal','Tanggal'],['tujuan','Tujuan'],['produk','Jenis BBM'],['volume','Volume (KL)'],['driver','Driver'],['status','Status']];
 function options(values,selected){return values.map(v=>'<option '+(v===selected?'selected':'')+'>'+safe(v)+'</option>').join('')}
 function table(){
- return '<section class="card table-card"><div class="row"><h2>Data pengiriman</h2><div class="manage-actions">'+addButton('pengiriman')+'<button data-action="csv">↓ Ekspor CSV</button></div></div><div class="table-tools"><input type="search" id="table-search" aria-label="Cari di tabel" placeholder="Cari ID, tujuan, atau driver" value="'+safe(state.query)+'"><select id="status-filter" aria-label="Filter status"><option value="">Semua status</option>'+options(DATA.statuses,state.status)+'</select><select id="product-filter" aria-label="Filter jenis BBM"><option value="">Semua BBM</option>'+options(DATA.produk,state.product)+'</select></div><div id="table-result"></div></section>';
+ return '<section class="card table-card"><div class="row"><div><h2>Data pengiriman</h2><p class="quiet">'+periodLabel()+'</p></div><div class="manage-actions">'+addButton('pengiriman')+'<button data-action="csv">↓ Ekspor CSV</button></div></div><div class="table-tools"><input type="search" id="table-search" aria-label="Cari di tabel" placeholder="Cari ID, tujuan, atau driver" value="'+safe(state.query)+'"><select id="status-filter" aria-label="Filter status"><option value="">Semua status</option>'+options(DATA.statuses,state.status)+'</select><select id="product-filter" aria-label="Filter jenis BBM"><option value="">Semua BBM</option>'+options(DATA.produk,state.product)+'</select></div><div id="table-result"></div></section>';
 }
 function tableRows(){
  if(!$('table-result'))return;
@@ -330,19 +338,19 @@ function metricDelta(value,old,invert){
  return '<span class="badge '+(delta===0?'':(delta>0)!==invert?'ok':'bad')+'" title="Perubahan dari periode pembanding">'+(delta>0?'↑ +':delta<0?'↓ ':'')+delta+'%</span>';
 }
 function dashboard(){
- const [start,prevStart,prevEnd]=periodRange(), now=current(), before=inRange(prevStart,prevEnd);
+ const [,,prevStart,prevEnd]=periodRange(), now=current(), before=inRange(prevStart,prevEnd);
  const allStocks=data.depot.length>0&&data.depot.every(d=>known(d.stok)), allOldStocks=data.depot.length>0&&data.depot.every(d=>known(d.stok_lalu));
  const values=[sum(delivered(now)),allStocks?data.depot.reduce((s,d)=>s+Number(d.stok),0):null,data.armada.filter(r=>r.status==='Aktif').length,countSPBU(now),now.filter(r=>r.status==='Tertunda').length];
  const past=[sum(delivered(before)),allOldStocks?data.depot.reduce((s,d)=>s+Number(d.stok_lalu),0):null,null,countSPBU(before),before.filter(r=>r.status==='Tertunda').length];
  const cards=TEKS.kpi.map(([label,note,i,unit],n)=>'<article class="card kpi"><div class="row"><div class="kpi-icon">'+icon(i)+'</div>'+metricDelta(values[n],past[n],n===4)+'</div><h2>'+label+'</h2><strong '+(values[n]!==null?'data-count="'+values[n]+'"':'')+'>'+(values[n]===null?'—':nf(values[n]))+'</strong><span class="unit">'+(values[n]===null?'':unit)+'</span><p class="quiet">'+note+'</p></article>').join('');
  const chart=(key)=>'<article class="card"><h2>'+TEKS[key][0]+'</h2><div class="chart" id="'+key+'-wrap"><canvas id="'+key+'" role="img" aria-label="'+TEKS[key][0]+'"></canvas></div><p class="quiet chart-note">'+TEKS[key][1]+'</p></article>';
- const recent=[...rows].sort((a,b)=>b.tanggal.localeCompare(a.tanggal)||b.id.localeCompare(a.id)).slice(0,5);
- return '<section class="hero"><div class="row"><div><div class="tag">Operasional · Distribusi energi</div><h1>'+TEKS.judul+'</h1><p>'+TEKS.intro+'</p><p class="quiet">'+dateLabel(start)+' — '+dateLabel(today)+' · WIB</p></div><span class="badge warm">'+safe(source)+'</span></div></section>'+
+ const recent=(state.period==='date'?now:[...rows]).sort((a,b)=>b.tanggal.localeCompare(a.tanggal)||b.id.localeCompare(a.id)).slice(0,5);
+ return '<section class="hero"><div class="row"><div><div class="tag">Operasional · Distribusi energi</div><h1>'+TEKS.judul+'</h1><p>'+TEKS.intro+'</p><p class="quiet">'+periodLabel()+'</p></div><span class="badge warm">'+safe(source)+'</span></div></section>'+
  '<section class="kpis" aria-label="Ringkasan KPI">'+cards+'</section>'+(rows.length===0?'<section class="card table-card"><h2>Siap untuk data operasional</h2><p class="quiet">Belum ada riwayat pengiriman dan armada. Operator dapat menambahkan armada terlebih dahulu, kemudian membuat pengiriman. Data stok terminal juga belum dimasukkan.</p></section>':'')+
  '<section class="grid">'+chart('tren')+chart('produk')+'</section>'+
  '<section class="grid grid-even">'+chart('wilayah')+'<article class="card">'+sectionTitle(TEKS.kapasitas)+progress()+'</article></section>'+
  '<section class="grid"><article class="card">'+sectionTitle(TEKS.peta)+map()+'</article><article class="card"><h2>Peringatan</h2><ul class="list">'+(alertData().slice(0,6).map(a=>'<li><button data-detail="'+safe(a.key)+'"><b>'+safe(a.title)+'</b><p class="quiet">'+safe(a.note)+'</p></button></li>').join('')||'<li>Tidak ada peringatan.</li>')+'</ul></article></section>'+
-  (operator?'<section class="card table-card"><div class="management-head"><div><h2>Manajemen data</h2><p class="quiet">Tambah, edit, atau hapus data dan sinkronkan ke Supabase.</p></div><div class="manage-actions">'+addButton('pengiriman')+addButton('depot')+addButton('armada')+addButton('spbu')+'</div></div></section>':'')+table()+'<section class="card table-card"><h2>Aktivitas terbaru</h2><ol class="list timeline">'+(recent.map(r=>'<li><button class="link" data-detail="'+safe(r.id)+'">'+safe(r.id)+'</button> · '+safe(r.tujuan)+' '+badge(r.status)+'<p class="quiet">'+dateLabel(r.tanggal)+' · '+safe(r.produk)+' · '+nf(r.volume)+' KL</p></li>').join('')||'<li>Belum ada aktivitas.</li>')+'</ol></section>';
+  (operator?'<section class="card table-card"><div class="management-head"><div><h2>Manajemen data</h2><p class="quiet">Tambah, edit, atau hapus data dan sinkronkan ke Supabase.</p></div><div class="manage-actions">'+addButton('pengiriman')+addButton('depot')+addButton('armada')+addButton('spbu')+'</div></div></section>':'')+table()+'<section class="card table-card"><h2>'+(state.period==='date'?'Aktivitas pada tanggal terpilih':'Aktivitas terbaru')+'</h2><ol class="list timeline">'+(recent.map(r=>'<li><button class="link" data-detail="'+safe(r.id)+'">'+safe(r.id)+'</button> · '+safe(r.tujuan)+' '+badge(r.status)+'<p class="quiet">'+dateLabel(r.tanggal)+' · '+safe(r.produk)+' · '+nf(r.volume)+' KL</p></li>').join('')||'<li>Belum ada aktivitas.</li>')+'</ol></section>';
 }
 function chartData(){
  const months=Array.from({length:12},(_,i)=>monthAt(i-11)), all=delivered(rows), recent=delivered(current());
@@ -412,7 +420,7 @@ function csv(){
  const quote=x=>'"'+String(x??'').replace(/^[=+@\-\t\r\n]/,m=>"'"+m).replaceAll('"','""')+'"';
  const content=[columns.map(([,label])=>label),...filtered().map(r=>columns.map(([key])=>r[key]))].map(r=>r.map(quote).join(';')).join('\r\n');
  const url=URL.createObjectURL(new Blob(['\ufeff',content],{type:'text/csv;charset=utf-8'}));
- const a=document.createElement('a');a.href=url;a.download='pengiriman-bbm-'+today+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+ const a=document.createElement('a');a.href=url;a.download='pengiriman-bbm-'+(state.period==='date'?state.date:today)+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 function enter(){
  $('login').hidden=true;$('app').hidden=false;syncMenu();render();refresh();
@@ -459,7 +467,7 @@ function recoveryForm(){
 async function logout(){
  if(user&&db){const {error}=await db.auth.signOut({scope:'local'});if(error){openModal('Keluar gagal','<p>Coba lagi saat koneksi tersedia.</p>');return;}}
  user=null;operator=false;local('removeItem','remember-auth');
- state={view:'Dashboard',period:'30',query:'',status:'',product:'',page:1,sort:'tanggal',direction:-1,seen:false};
+ state={view:'Dashboard',period:'30',date:today,query:'',status:'',product:'',page:1,sort:'tanggal',direction:-1,seen:false};
  $('period').value='30';$('global-search').value='';$('profile-menu').open=false;loginScreen();$('username').focus();
 }
 document.addEventListener('click',async event=>{
@@ -507,6 +515,10 @@ document.addEventListener('input',event=>{
 document.addEventListener('change',event=>{
  const {id,value}=event.target;
  if(id==='period'){state.period=value;state.page=1;state.seen=false;render();}
+ if(id==='shipment-date'){
+  if(!event.target.validity.valid||!/^\d{4}-\d{2}-\d{2}$/.test(value)){event.target.value=state.date;return;}
+  state.date=value;state.page=1;state.seen=false;render();
+ }
  if(id==='status-filter'||id==='product-filter'){state[id==='status-filter'?'status':'product']=value;state.page=1;tableRows();}
 });
 // Cegah submit form HTML biasa (GET/POST) termasuk jika nama form berubah.
