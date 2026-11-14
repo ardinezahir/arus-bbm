@@ -20,6 +20,7 @@
 @media(max-width:800px){.app,.app.collapsed{display:block}aside{position:fixed;left:0;top:0;width:225px;transform:translateX(-100%);visibility:hidden;transition:transform .2s,visibility .2s}.mobile-open aside{transform:none;visibility:visible}.mobile-open .overlay{display:block;position:fixed;inset:0;background:#07172d88;border:0;z-index:8}.top{flex-wrap:wrap}.top input{flex:1;width:0;min-width:105px}.top .profile span{display:none}.login{grid-template-columns:1fr 1fr}.login-visual{padding:24px}}
 @media(max-width:570px){.login{display:block}.login-visual{min-height:275px;padding:19px}.login-visual h1{font-size:34px;margin:7px 0}.login-visual p{font-size:12px}.login-visual>small{display:none}.login-content{padding:47px 18px 24px}.theme-login{top:8px;right:14px}.login-form{gap:13px}.grid,.grid-even{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.kpi{padding:11px}.top{gap:5px;padding:8px}.top .top-title{flex:1}.top input{flex-basis:51%;order:2}.top select{order:3;flex:1}.hero .row{display:block}.hero .badge{margin-top:9px}.chart{height:205px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+.management-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}.manage-actions{display:flex;gap:7px;align-items:center;flex-wrap:wrap}.manage-actions button{font-size:12px;padding:7px 10px}.danger{border-color:var(--red);color:var(--red)}.danger:hover{background:var(--redbg)}.editor-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.editor-grid label{display:grid;gap:5px;font-weight:600;font-size:12px}.editor-grid input,.editor-grid select{min-width:0;width:100%;margin:0}.editor-grid .wide{grid-column:1/-1}dialog.editor-dialog{width:min(620px,calc(100% - 28px));max-height:88vh;overflow-y:auto}.editor-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;margin-top:12px}.notice{padding:10px 12px;border-radius:10px;background:var(--bluebg);color:var(--blue);margin-bottom:12px;font-size:13px}@media(max-width:570px){.editor-grid{grid-template-columns:1fr}.management-head{align-items:flex-start}}
 </style>
 </head>
 <body>
@@ -236,18 +237,75 @@ function map(){
  const points=[...data.depot,...data.spbu].map(p=>'<button class="pin '+(p.depot_id?'spbu':'')+'" style="left:'+Number(p.x)+'%;top:'+Number(p.y)+'%" data-detail="'+safe(p.id)+'" title="'+safe(p.nama)+'" aria-label="'+safe(p.nama)+'"></button>').join('');
  return '<div class="map">'+background+points+'</div><p class="quiet">● Depot &nbsp; <span style="color:var(--orangeink)">●</span> SPBU</p>';
 }
+// Formulir CRUD langsung terhubung ke Supabase. Hak tulis diverifikasi ulang lewat RLS.
+const EDITORS={
+ pengiriman:{title:'Pengiriman BBM',fields:[['id','ID Pengiriman','text'],['tanggal','Tanggal','date'],['spbu_id','Tujuan SPBU','spbu'],['armada_id','Armada','armada'],['produk','Jenis BBM','produk'],['volume','Volume (KL)','number'],['status','Status','status'],['catatan','Catatan','text']]},
+ depot:{title:'Depot dan stok',fields:[['id','ID Depot','text'],['nama','Nama depot','text'],['wilayah','Wilayah','text'],['kapasitas','Kapasitas (KL)','number'],['stok','Stok saat ini (KL)','number'],['stok_lalu','Stok periode lalu (KL)','number'],['x','Posisi peta X (0–100)','coordinate'],['y','Posisi peta Y (0–100)','coordinate']]},
+ armada:{title:'Armada',fields:[['id','ID Armada','text'],['plat','Nomor polisi','text'],['driver','Nama pengemudi','text'],['kapasitas','Kapasitas (KL)','number'],['status','Status armada','fleetstatus']]},
+ spbu:{title:'SPBU',fields:[['id','ID SPBU','text'],['nama','Nama SPBU','text'],['depot_id','Depot asal','depot'],['x','Posisi peta X (0–100)','coordinate'],['y','Posisi peta Y (0–100)','coordinate']]}
+};
+const editButton=(kind,id)=>operator? '<button data-edit="'+safe(kind)+'" data-record="'+safe(id)+'">Edit</button>':'';
+const deleteButton=(kind,id)=>operator?'<button class="danger" data-delete="'+safe(kind)+'" data-record="'+safe(id)+'">Hapus</button>':'';
+const addButton=kind=>operator?'<button class="primary" data-add="'+kind+'">+ Tambah '+EDITORS[kind].title+'</button>':'';
+const recordSet=kind=>data[kind]||[];
+function optList(list,value){return list.map(([id,label])=>'<option value="'+safe(id)+'" '+(String(id)===String(value)?'selected':'')+'>'+safe(label)+'</option>').join('');}
+function editorField(kind,definition,record,adding){
+ const [key,label,type]=definition, val=record?.[key]??(key==='tanggal'?today:key==='status'?(kind==='armada'?'Aktif':'Dikirim'):key==='catatan'?'':key==='x'||key==='y'?50:'');
+ const locked=key==='id'&&!adding;
+ const choices=type==='spbu'?data.spbu.map(r=>[r.id,r.nama+' · '+r.id]):type==='armada'?data.armada.map(r=>[r.id,r.plat+' · '+r.driver]):type==='depot'?data.depot.map(r=>[r.id,r.nama]):type==='produk'?DATA.produk.map(v=>[v,v]):type==='status'?DATA.statuses.map(v=>[v,v]):type==='fleetstatus'?['Aktif','Siaga','Perawatan'].map(v=>[v,v]):null;
+ const control=choices?'<select name="'+key+'" required>'+optList(choices,val)+'</select>':'<input name="'+key+'" type="'+(type==='number'||type==='coordinate'?'number':type==='date'?'date':'text')+'" value="'+safe(val)+'" '+(locked?'readonly':'required')+' '+(type==='number'?'min="'+(key==='stok'||key==='stok_lalu'?0:1)+'" step="1"':type==='coordinate'?'min="0" max="100" step="1"':'')+' '+(key==='catatan'?'maxlength="240"':'maxlength="120"')+'>';
+ return '<label class="'+(key==='catatan'?'wide':'')+'">'+safe(label)+control+'</label>';
+}
+function openEditor(kind,id=null){
+ if(!operator||!db||source.startsWith('Data lokal'))return;
+ const existing=id?recordSet(kind).find(r=>r.id===id):null;
+ if(id&&!existing)return;
+ const adding=!existing, title=(adding?'Tambah ':'Edit ')+EDITORS[kind].title;
+ openModal(title,'<form id="crud-form" data-kind="'+kind+'" data-original="'+safe(id||'')+'"><div class="editor-grid">'+EDITORS[kind].fields.map(f=>editorField(kind,f,existing,adding)).join('')+'</div><div class="editor-actions"><button type="button" data-action="close">Batal</button><button class="primary" type="submit">'+(adding?'Tambah data':'Simpan perubahan')+'</button></div><p class="message" role="alert"></p></form>');
+ $('dialog').classList.add('editor-dialog');
+}
+async function saveRecord(form){
+ if(!operator||!user||!db)throw new Error('Hanya operator terdaftar yang boleh mengubah data.');
+ const kind=form.dataset.kind, original=form.dataset.original, payload={};
+ for(const [key,,type] of EDITORS[kind].fields){
+  const raw=String(new FormData(form).get(key)??'').trim();
+  if(!raw&&key!=='catatan')throw new Error('Semua kolom wajib diisi kecuali catatan.');
+  payload[key]=type==='number'||type==='coordinate'?Number(raw):raw;
+  if((type==='number'||type==='coordinate')&&(!Number.isInteger(payload[key])||(type==='coordinate'&&(payload[key]<0||payload[key]>100))))throw new Error('Isian angka harus bilangan bulat yang valid.');
+ }
+ if(kind==='depot'&&(payload.stok>payload.kapasitas||payload.stok_lalu>payload.kapasitas))throw new Error('Stok tidak boleh lebih besar dari kapasitas.');
+ if(!original&&recordSet(kind).some(r=>r.id===payload.id))throw new Error('ID sudah digunakan. Pilih ID yang lain.');
+ if(original)delete payload.id;
+ const query=db.from('bbm_'+kind);
+ const {data:updated,error}=await (original?query.update(payload).eq('id',original):query.insert(payload)).select('id').maybeSingle();
+ if(error)throw new Error(error.code==='23503'?'Referensi depot, SPBU, atau armada tidak valid.':error.code==='23505'?'ID atau nomor polisi sudah dipakai.':error.message);
+ if(!updated)throw new Error('Perubahan ditolak. Periksa izin akun operator.');
+ $('dialog').close();$('dialog').classList.remove('editor-dialog');
+ await refresh();$('announcement').textContent='Data '+EDITORS[kind].title+' berhasil '+(original?'diperbarui.':'ditambahkan.');
+}
+async function removeRecord(kind,id){
+ if(!operator||!user||!db)return;
+ const record=recordSet(kind).find(r=>r.id===id);if(!record)return;
+ const name=record.nama||record.plat||record.id;
+ if(!window.confirm('Hapus '+EDITORS[kind].title+' "'+name+'" secara permanen? Tindakan ini tidak bisa dibatalkan.'))return;
+ const {data:deleted,error}=await db.from('bbm_'+kind).delete().eq('id',id).select('id').maybeSingle();
+ if(error){openModal('Gagal menghapus','<p>'+safe(error.code==='23503'?'Data ini masih digunakan oleh data lain. Hapus atau pindahkan data yang terkait terlebih dahulu.':error.message)+'</p>');return;}
+ if(!deleted){openModal('Gagal menghapus','<p>Tidak memiliki izin untuk menghapus data ini.</p>');return;}
+ await refresh();$('announcement').textContent='Data berhasil dihapus.';
+}
+function depotList(){return '<section class="card table-card"><div class="management-head"><h2>Kelola depot dan stok</h2>'+addButton('depot')+'</div><div class="scroll"><table><thead><tr><th>Depot</th><th>Wilayah</th><th>Stok / Kapasitas</th>'+(operator?'<th>Aksi</th>':'')+'</tr></thead><tbody>'+data.depot.map(r=>'<tr><td>'+safe(r.nama)+'</td><td>'+safe(r.wilayah)+'</td><td>'+nf(r.stok)+' / '+nf(r.kapasitas)+' KL</td>'+(operator?'<td><div class="manage-actions">'+editButton('depot',r.id)+deleteButton('depot',r.id)+'</div></td>':'')+'</tr>').join('')+'</tbody></table></div></section>';}
 const columns=[['id','ID'],['tanggal','Tanggal'],['tujuan','Tujuan'],['produk','Jenis BBM'],['volume','Volume (KL)'],['driver','Driver'],['status','Status']];
 function options(values,selected){return values.map(v=>'<option '+(v===selected?'selected':'')+'>'+safe(v)+'</option>').join('')}
 function table(){
- return '<section class="card table-card"><div class="row"><h2>Data pengiriman</h2><button data-action="csv">↓ Ekspor CSV</button></div><div class="table-tools"><input type="search" id="table-search" aria-label="Cari di tabel" placeholder="Cari ID, tujuan, atau driver" value="'+safe(state.query)+'"><select id="status-filter" aria-label="Filter status"><option value="">Semua status</option>'+options(DATA.statuses,state.status)+'</select><select id="product-filter" aria-label="Filter jenis BBM"><option value="">Semua BBM</option>'+options(DATA.produk,state.product)+'</select></div><div id="table-result"></div></section>';
+ return '<section class="card table-card"><div class="row"><h2>Data pengiriman</h2><div class="manage-actions">'+addButton('pengiriman')+'<button data-action="csv">↓ Ekspor CSV</button></div></div><div class="table-tools"><input type="search" id="table-search" aria-label="Cari di tabel" placeholder="Cari ID, tujuan, atau driver" value="'+safe(state.query)+'"><select id="status-filter" aria-label="Filter status"><option value="">Semua status</option>'+options(DATA.statuses,state.status)+'</select><select id="product-filter" aria-label="Filter jenis BBM"><option value="">Semua BBM</option>'+options(DATA.produk,state.product)+'</select></div><div id="table-result"></div></section>';
 }
 function tableRows(){
  if(!$('table-result'))return;
  const list=filtered(), size=7, last=Math.max(1,Math.ceil(list.length/size));
  state.page=Math.min(state.page,last);
- const th=columns.map(([k,l])=>'<th scope="col" '+(k===state.sort?'aria-sort="'+(state.direction===1?'ascending':'descending')+'"':'')+'><button data-sort="'+k+'">'+l+(k===state.sort?(state.direction===1?' ↑':' ↓'):' ↕')+'</button></th>').join('');
- const body=list.slice((state.page-1)*size,state.page*size).map(r=>'<tr>'+columns.map(([k])=>'<td>'+(k==='status'?badge(r[k]):k==='tanggal'?dateLabel(r[k]):k==='volume'?nf(r[k]):k==='id'?'<button data-detail="'+safe(r.id)+'">'+safe(r.id)+'</button>':safe(r[k]))+'</td>').join('')+'</tr>').join('');
- $('table-result').innerHTML='<div class="scroll" tabindex="0" aria-label="Tabel pengiriman dapat digulir"><table><thead><tr>'+th+'</tr></thead><tbody>'+(body||'<tr><td colspan="7">Tidak ada pengiriman yang cocok.</td></tr>')+'</tbody></table></div><div class="row pager"><span class="quiet">'+nf(list.length)+' pengiriman · Halaman '+state.page+' dari '+last+'</span><div><button data-action="prev" '+(state.page===1?'disabled':'')+'>Sebelumnya</button> <button data-action="next" '+(state.page===last?'disabled':'')+'>Berikutnya</button></div></div>';
+ const th=columns.map(([k,l])=>'<th scope="col" '+(k===state.sort?'aria-sort="'+(state.direction===1?'ascending':'descending')+'"':'')+'><button data-sort="'+k+'">'+l+(k===state.sort?(state.direction===1?' ↑':' ↓'):' ↕')+'</button></th>').join('')+(operator?'<th>Aksi</th>':'');
+ const body=list.slice((state.page-1)*size,state.page*size).map(r=>'<tr>'+columns.map(([k])=>'<td>'+(k==='status'?badge(r[k]):k==='tanggal'?dateLabel(r[k]):k==='volume'?nf(r[k]):k==='id'?'<button data-detail="'+safe(r.id)+'">'+safe(r.id)+'</button>':safe(r[k]))+'</td>').join('')+(operator?'<td><div class="manage-actions">'+editButton('pengiriman',r.id)+deleteButton('pengiriman',r.id)+'</div></td>':'')+'</tr>').join('');
+ $('table-result').innerHTML='<div class="scroll" tabindex="0" aria-label="Tabel pengiriman dapat digulir"><table><thead><tr>'+th+'</tr></thead><tbody>'+(body||'<tr><td colspan="'+(operator?8:7)+'">Tidak ada pengiriman yang cocok.</td></tr>')+'</tbody></table></div><div class="row pager"><span class="quiet">'+nf(list.length)+' pengiriman · Halaman '+state.page+' dari '+last+'</span><div><button data-action="prev" '+(state.page===1?'disabled':'')+'>Sebelumnya</button> <button data-action="next" '+(state.page===last?'disabled':'')+'>Berikutnya</button></div></div>';
 }
 function metricDelta(value,old,invert){
  if(old===null)return '<span class="quiet">Saat ini</span>';
@@ -267,7 +325,7 @@ function dashboard(){
  '<section class="grid">'+chart('tren')+chart('produk')+'</section>'+
  '<section class="grid grid-even">'+chart('wilayah')+'<article class="card">'+sectionTitle(TEKS.kapasitas)+progress()+'</article></section>'+
  '<section class="grid"><article class="card">'+sectionTitle(TEKS.peta)+map()+'</article><article class="card"><h2>Peringatan</h2><ul class="list">'+(alertData().slice(0,6).map(a=>'<li><button data-detail="'+safe(a.key)+'"><b>'+safe(a.title)+'</b><p class="quiet">'+safe(a.note)+'</p></button></li>').join('')||'<li>Tidak ada peringatan.</li>')+'</ul></article></section>'+
- table()+'<section class="card table-card"><h2>Aktivitas terbaru</h2><ol class="list timeline">'+(recent.map(r=>'<li><button class="link" data-detail="'+safe(r.id)+'">'+safe(r.id)+'</button> · '+safe(r.tujuan)+' '+badge(r.status)+'<p class="quiet">'+dateLabel(r.tanggal)+' · '+safe(r.produk)+' · '+nf(r.volume)+' KL</p></li>').join('')||'<li>Belum ada aktivitas.</li>')+'</ol></section>';
+  (operator?'<section class="card table-card"><div class="management-head"><div><h2>Manajemen data</h2><p class="quiet">Tambah, edit, atau hapus data dan sinkronkan ke Supabase.</p></div><div class="manage-actions">'+addButton('pengiriman')+addButton('depot')+addButton('armada')+addButton('spbu')+'</div></div></section>':'')+table()+'<section class="card table-card"><h2>Aktivitas terbaru</h2><ol class="list timeline">'+(recent.map(r=>'<li><button class="link" data-detail="'+safe(r.id)+'">'+safe(r.id)+'</button> · '+safe(r.tujuan)+' '+badge(r.status)+'<p class="quiet">'+dateLabel(r.tanggal)+' · '+safe(r.produk)+' · '+nf(r.volume)+' KL</p></li>').join('')||'<li>Belum ada aktivitas.</li>')+'</ol></section>';
 }
 function chartData(){
  const months=Array.from({length:12},(_,i)=>monthAt(i-11)), all=delivered(rows), recent=delivered(current());
@@ -303,11 +361,11 @@ function render(){
  const view=state.view;let body='';
  if(view==='Dashboard')body=dashboard();
  if(view==='Distribusi')body=titleBlock(view,'Cari, saring, dan buka detail pengiriman.')+table();
- if(view==='Stok Depot')body=titleBlock(view,'Pantau stok dan kapasitas penyimpanan tiap depot.')+'<div class="grid grid-even"><section class="card">'+sectionTitle(TEKS.kapasitas)+progress()+'</section><section class="card">'+sectionTitle(TEKS.peta)+map()+'</section></div>';
- if(view==='Armada')body=titleBlock(view,'Daftar truk tangki, pengemudi, dan status kesiapan.')+'<div class="cards-view">'+data.armada.map(r=>'<article class="card"><div class="row"><h2>'+safe(r.plat)+'</h2>'+badge(r.status)+'</div><p>'+safe(r.driver)+'</p><p class="quiet">Kapasitas '+nf(r.kapasitas)+' KL</p></article>').join('')+'</div>';
- if(view==='SPBU')body=titleBlock(view,'Daftar titik layanan SPBU dan depot asal.')+'<div class="cards-view">'+data.spbu.map(r=>'<article class="card"><h2>'+safe(r.nama)+'</h2><p class="quiet">'+safe(data.depot.find(x=>x.id===r.depot_id)?.nama)+'</p><button data-detail="'+safe(r.id)+'">Lihat detail</button></article>').join('')+'</div>';
+ if(view==='Stok Depot')body=titleBlock(view,'Pantau stok dan kapasitas penyimpanan tiap depot.')+'<div class="grid grid-even"><section class="card">'+sectionTitle(TEKS.kapasitas)+progress()+'</section><section class="card">'+sectionTitle(TEKS.peta)+map()+'</section></div>'+depotList();
+ if(view==='Armada')body=titleBlock(view,'Daftar truk tangki, pengemudi, dan status kesiapan.')+'<div class="management-head">'+addButton('armada')+'</div><div class="cards-view">'+data.armada.map(r=>'<article class="card"><div class="row"><h2>'+safe(r.plat)+'</h2>'+badge(r.status)+'</div><p>'+safe(r.driver)+'</p><p class="quiet">Kapasitas '+nf(r.kapasitas)+' KL</p>'+(operator?'<div class="manage-actions">'+editButton('armada',r.id)+deleteButton('armada',r.id)+'</div>':'')+'</article>').join('')+'</div>';
+ if(view==='SPBU')body=titleBlock(view,'Daftar titik layanan SPBU dan depot asal.')+'<div class="management-head">'+addButton('spbu')+'</div><div class="cards-view">'+data.spbu.map(r=>'<article class="card"><h2>'+safe(r.nama)+'</h2><p class="quiet">'+safe(data.depot.find(x=>x.id===r.depot_id)?.nama)+'</p><div class="manage-actions"><button data-detail="'+safe(r.id)+'">Detail</button>'+editButton('spbu',r.id)+deleteButton('spbu',r.id)+'</div></article>').join('')+'</div>';
  if(view==='Laporan')body=titleBlock(view,'Ekspor data sesuai periode, pencarian, dan filter tabel.')+table();
- if(view==='Pengaturan')body=titleBlock(view,'Sesuaikan tampilan dan periksa koneksi data.')+'<section class="card table-card"><h2>Preferensi</h2><ul class="list"><li><div class="row"><span>Tampilan '+(document.documentElement.dataset.theme==='dark'?'gelap':'terang')+'</span><button data-action="theme">Ganti tema</button></div></li><li><div class="row"><span>'+safe(source)+'</span><button data-action="refresh">Muat ulang data</button></div></li><li><div class="row"><span>'+(operator?'Operator · Bisa mengubah status':'Akses baca data simulasi')+'</span><button data-action="profile">Profil</button></div></li></ul></section>';
+ if(view==='Pengaturan')body=titleBlock(view,'Sesuaikan tampilan dan periksa koneksi data.')+'<section class="card table-card"><h2>Preferensi</h2><ul class="list"><li><div class="row"><span>Tampilan '+(document.documentElement.dataset.theme==='dark'?'gelap':'terang')+'</span><button data-action="theme">Ganti tema</button></div></li><li><div class="row"><span>'+safe(source)+'</span><button data-action="refresh">Muat ulang data</button></div></li><li><div class="row"><span>'+(operator?'Operator · Bisa tambah, edit, hapus data':'Akses baca data simulasi')+'</span><button data-action="profile">Profil</button></div></li></ul></section>';
  $('content').innerHTML='<div class="fade">'+body+'</div>'+footer();
  tableRows();drawCharts();
  if(!reduceMotion&&view==='Dashboard'){
@@ -317,13 +375,14 @@ function render(){
  }
 }
 function openModal(title,content){
+ $('dialog').classList.remove('editor-dialog');
  $('modal-title').textContent=title;$('modal-content').innerHTML=content;
  if(!$('dialog').open)$('dialog').showModal();
 }
 function showDetail(id){
  const r=rows.find(x=>x.id===id);
  if(r){
-  const edit=operator?'<form id="edit-form" data-id="'+safe(r.id)+'"><label>Status<select name="status">'+options(DATA.statuses,r.status)+'</select></label><label>Catatan<input name="catatan" maxlength="240" value="'+safe(r.catatan)+'"></label><button class="primary">Simpan status</button><p class="message" role="alert"></p></form>':'';
+  const edit=operator?'<div class="manage-actions">'+editButton('pengiriman',r.id)+deleteButton('pengiriman',r.id)+'</div>':'';
   openModal(r.id,'<p><b>'+safe(r.tujuan)+'</b> · '+dateLabel(r.tanggal)+'</p><p>'+safe(r.produk)+' · '+nf(r.volume)+' KL · '+safe(r.driver)+'</p><p>'+badge(r.status)+'</p><p>'+safe(r.catatan)+'</p>'+edit);return;
  }
  const depot=data.depot.find(x=>x.id===id);
@@ -384,6 +443,9 @@ document.addEventListener('click',event=>{
  const control=event.target.closest('button');if(!control)return;
  if(control.dataset.view){setView(control.dataset.view);return;}
  if(control.dataset.detail){$('notifications').open=false;showDetail(control.dataset.detail);return;}
+ if(control.dataset.add){openEditor(control.dataset.add);return;}
+ if(control.dataset.edit){openEditor(control.dataset.edit,control.dataset.record);return;}
+ if(control.dataset.delete){removeRecord(control.dataset.delete,control.dataset.record);return;}
  if(control.dataset.sort){
   const k=control.dataset.sort;state.direction=state.sort===k?-state.direction:1;state.sort=k;state.page=1;tableRows();document.querySelector('[data-sort='+k+']')?.focus();return;
  }
@@ -393,7 +455,7 @@ document.addEventListener('click',event=>{
  case 'password':{const show=$('password').type==='password';$('password').type=show?'text':'password';control.textContent=show?'Sembunyikan':'Lihat';control.setAttribute('aria-pressed',String(show));break;}
  case 'forgot':forgot();break;
  case 'close':$('dialog').close();break;
- case 'profile':$('profile-menu').open=false;openModal('Profil','<p><b>'+safe(user?.email||'Tamu')+'</b></p><p>'+safe(operator?'Operator · Akses edit status':'Akses hanya baca')+'</p>');break;
+ case 'profile':$('profile-menu').open=false;openModal('Profil','<p><b>'+safe(user?.email||'Tamu')+'</b></p><p>'+safe(operator?'Operator · Kelola seluruh data':'Akses hanya baca')+'</p>');break;
  case 'logout':logout();break;
  case 'guest':user=null;operator=false;enter();break;
  case 'csv':csv();break;
@@ -417,7 +479,7 @@ document.addEventListener('change',event=>{
 });
 document.addEventListener('submit',async event=>{
  const f=event.target;
- if(!['login-form','forgot-form','recovery-form','edit-form'].includes(f.id))return;
+ if(!['login-form','forgot-form','recovery-form','crud-form'].includes(f.id))return;
  event.preventDefault();
  if(f.id==='login-form'){await signIn();return;}
  const msg=f.querySelector('.message'), button=f.querySelector('button'), fields=new FormData(f);
@@ -433,11 +495,7 @@ document.addEventListener('submit',async event=>{
    const {error}=await db.auth.updateUser({password:fields.get('password')});if(error)throw error;
    await db.auth.signOut({scope:'local'});recovery=false;$('dialog').close();$('login-message').textContent='Kata sandi diperbarui. Silakan masuk.';
   }
-  if(f.id==='edit-form'){
-   const {data:updated,error}=await db.from('bbm_pengiriman').update({status:fields.get('status'),catatan:String(fields.get('catatan')).trim()}).eq('id',f.dataset.id).select('id').maybeSingle();
-   if(error||!updated)throw new Error('Gagal menyimpan. Periksa hak akses operator.');
-   $('dialog').close();$('announcement').textContent='Status pengiriman tersimpan.';await refresh();
-  }
+  if(f.id==='crud-form')await saveRecord(f);
  }catch(e){msg.textContent=e.message;}
  finally{button.disabled=false;}
 });
