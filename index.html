@@ -22,6 +22,7 @@
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 .management-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}.manage-actions{display:flex;gap:7px;align-items:center;flex-wrap:wrap}.manage-actions button{font-size:12px;padding:7px 10px}.danger{border-color:var(--red);color:var(--red)}.danger:hover{background:var(--redbg)}.editor-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.editor-grid label{display:grid;gap:5px;font-weight:600;font-size:12px}.editor-grid input,.editor-grid select{min-width:0;width:100%;margin:0}.editor-grid .wide{grid-column:1/-1}dialog.editor-dialog{width:min(620px,calc(100% - 28px));max-height:88vh;overflow-y:auto}.editor-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;margin-top:12px}.notice{padding:10px 12px;border-radius:10px;background:var(--bluebg);color:var(--blue);margin-bottom:12px;font-size:13px}@media(max-width:570px){.editor-grid{grid-template-columns:1fr}.management-head{align-items:flex-start}}
 .cell-address{white-space:normal;min-width:260px;max-width:520px}.cards-view a{align-self:center}.list a{font-weight:600}#dialog.editor-dialog{width:min(700px,calc(100% - 28px))}
+#action-status{position:fixed;right:18px;bottom:18px;z-index:300;background:var(--surface);border:1px solid var(--green);border-left:5px solid var(--green);box-shadow:var(--shadow);padding:14px 16px;border-radius:10px;max-width:min(470px,calc(100vw - 36px));font-weight:600;line-height:1.5}#action-status.error{border-color:var(--red);border-left-color:var(--red)}.save-message{position:sticky;top:0;z-index:2;background:var(--surface);padding:6px 0;white-space:pre-wrap}#crud-form .save-hint{font-size:12px;color:var(--muted);margin-bottom:6px}
 </style>
 </head>
 <body>
@@ -57,7 +58,7 @@
  </div>
 </section>
 <dialog id="dialog" aria-labelledby="modal-title"><div class="modal-body"><div class="row"><h2 id="modal-title"></h2><button data-action="close" aria-label="Tutup dialog">×</button></div><div id="modal-content"></div></div></dialog>
-<div id="announcement" class="sr" role="status" aria-live="polite"></div>
+<div id="announcement" class="sr" role="status" aria-live="polite"></div><div id="action-status" role="status" aria-live="polite" hidden></div>
 <script>
 'use strict';
 // GANTI GAMBAR DI SINI. Isi peta dengan URL bila ingin mengganti skema SVG bawaan.
@@ -82,7 +83,7 @@ const TEKS = {
  wilayah:['Distribusi per provinsi','Porsi volume tiba berdasarkan provinsi SPBU tujuan.'],
  kapasitas:['Stok dan kapasitas terminal','Angka ditampilkan jika sudah dimasukkan operator. Tanpa data tidak dianggap nol.'],
  peta:['Lokasi referensi terminal dan SPBU','Alamat berdasarkan sumber publik; hubungan pemasok SPBU belum ditetapkan.'],
- footer:'Data referensi lokasi Pertamina, tidak mewakili data pengiriman atau stok resmi perusahaan.', versi:'2.0.0'
+ footer:'Data referensi lokasi Pertamina, tidak mewakili data pengiriman atau stok resmi perusahaan.', versi:'2.1.1'
 };
 // DATA kosong digunakan saat koneksi tidak tersedia; tidak ada data pengiriman atau armada simulasi.
 const CONFIG = {url:'https://mkgguiushbpjxwviboxv.supabase.co',key:'sb_publishable_PaIy6PzE7CNcYHLZrP3XOg_ssSIQ0dW',github:'https://github.com/ardinezahir/bbm-monitor'};
@@ -115,6 +116,31 @@ const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let db, user=null, operator=false, source='Menghubungkan Supabase', charts=[], data=DATA, rows=[], loadSequence=0;
 let state={view:'Dashboard',period:'30',query:'',status:'',product:'',page:1,sort:'tanggal',direction:-1,seen:false};
 let recovery=false;
+let lastConnectionError='';
+function notify(message,isError=false){
+ const box=$('action-status');box.textContent=message;box.hidden=false;box.classList.toggle('error',isError);
+ $('announcement').textContent=message;
+}
+function clearNotice(){const box=$('action-status');box.hidden=true;box.textContent='';}
+async function checkWriteAccess(){
+ if(!db)throw new Error('Koneksi Supabase belum tersedia. Pastikan internet aktif dan file yang dibuka merupakan versi terbaru.');
+ const {data:authResult,error:authError}=await db.auth.getUser();
+ if(authError||!authResult?.user)throw new Error('Sesi login tidak valid atau telah kedaluwarsa. Keluar lalu login ulang memakai email operator.');
+ if(!user||authResult.user.id!==user.id)throw new Error('Sesi akun berubah. Keluar lalu login ulang menggunakan akun operator.');
+ const {data:role,error:roleError}=await db.from('bbm_operator').select('user_id').eq('user_id',authResult.user.id).maybeSingle();
+ if(roleError)throw new Error('Tidak dapat memeriksa hak operator: '+roleError.message);
+ if(!role)throw new Error('Email ini belum terdaftar sebagai operator di tabel bbm_operator. Hubungi pengelola Supabase.');
+ operator=true;return true;
+}
+function saveError(error){
+ if(error?.code==='42501'||error?.code==='PGRST301')return 'Akses ditolak oleh Supabase (RLS/izin). Coba logout dan login ulang dengan akun operator.';
+ if(error?.code==='23503')return 'SPBU, armada, atau terminal yang dipilih tidak tersedia. Muat ulang data sebelum mencoba lagi.';
+ if(error?.code==='23505')return 'ID atau kode sudah terdaftar. Gunakan ID unik lain.';
+ if(error?.code==='23514')return 'Data ditolak oleh aturan database. Periksa volume, kapasitas, status, dan stok.';
+ if(error?.code==='23502')return 'Ada kolom wajib pada database yang belum terisi.';
+ return error?.message||'Gagal mengirim perubahan ke Supabase.';
+}
+
 const brand = () => '<span class="mark"><img alt="" src="'+safe(ASSETS.logo)+'"></span><span class="brand-text">'+safe(TEKS.brand)+'<small>'+safe(TEKS.subbrand)+'</small></span>';
 const badge = value => '<span class="badge '+(['Tiba','Aktif','Normal'].includes(value)?'ok':['Tertunda','Kritis'].includes(value)?'bad':['Siaga','Perawatan'].includes(value)?'warm':'')+'">'+safe(value)+'</span>';
 function joinData(){
@@ -141,11 +167,16 @@ async function refresh(){
   const [depot,spbu,armada,pengiriman]=await Promise.all([readTable('depot'),readTable('spbu'),readTable('armada'),readTable('pengiriman','tanggal')]);
   if(seq!==loadSequence)return;
   data={depot,spbu,armada,pengiriman};source='Supabase · Referensi lokasi publik';
- }catch{
-  if(seq!==loadSequence)return;
-  data=DATA;source='Koneksi gagal · tidak ada data cadangan fiktif';
+  lastConnectionError='';
+ }catch(error){
+  if(seq!==loadSequence)return false;
+  lastConnectionError=error?.message||'Gagal membaca data dari Supabase';
+  source='Gagal sinkronisasi Supabase';
+  notify('Gagal membaca data Supabase: '+lastConnectionError,true);
+  console.error('Dashboard BBM - refresh gagal:',error);
+  joinData();if(!$('app').hidden)render();return false;
  }
- joinData(); if(!$('app').hidden)render();
+ joinData(); if(!$('app').hidden)render();return true;
 }
 function periodRange(){
  const start=state.period==='year'?today.slice(0,4)+'-01-01':shift(today,1-Number(state.period));
@@ -231,15 +262,17 @@ function editorField(kind,definition,record,adding){
  return '<label class="'+(key==='catatan'||key==='alamat'?'wide':'')+'">'+safe(label)+control+'</label>';
 }
 function openEditor(kind,id=null){
- if(!operator||!db||!source.startsWith('Supabase'))return;
+ if(!db){openModal('Koneksi belum siap','<p>Koneksi Supabase belum aktif. Periksa koneksi internet dan muat ulang halaman.</p>');return;}
+ if(!operator){openModal('Akses operator diperlukan','<p>Login menggunakan email dan password operator yang sudah diberikan akses pada Supabase.</p>');return;}
+ if(!source.startsWith('Supabase')){openModal('Gagal memuat data','<p>Data belum berhasil dimuat dari Supabase. Buka Pengaturan lalu pilih Muat ulang data. '+safe(lastConnectionError)+'</p>');return;}
  const existing=id?recordSet(kind).find(r=>r.id===id):null;
- if(id&&!existing)return;
+ if(id&&!existing){notify('Data tidak ditemukan. Silakan muat ulang.',true);return;}
  const adding=!existing, title=(adding?'Tambah ':'Edit ')+EDITORS[kind].title; if(kind==='pengiriman'&&data.armada.length===0){openModal('Armada belum ada','<p>Tambahkan armada beserta driver melalui menu Armada terlebih dahulu sebelum membuat pengiriman.</p>');return;}
- openModal(title,'<form id="crud-form" data-kind="'+kind+'" data-original="'+safe(id||'')+'"><div class="editor-grid">'+EDITORS[kind].fields.map(f=>editorField(kind,f,existing,adding)).join('')+'</div><div class="editor-actions"><button type="button" data-action="close">Batal</button><button class="primary" type="submit">'+(adding?'Tambah data':'Simpan perubahan')+'</button></div><p class="message" role="alert"></p></form>');
+ openModal(title,'<form id="crud-form" data-kind="'+kind+'" data-original="'+safe(id||'')+'"><p class="save-hint">Perubahan akan dikirim langsung ke Supabase, bukan hanya disimpan di browser.</p><p class="message save-message" role="alert"></p><div class="editor-grid">'+EDITORS[kind].fields.map(f=>editorField(kind,f,existing,adding)).join('')+'</div><div class="editor-actions"><button type="button" data-action="close">Batal</button><button class="primary" type="submit">'+(adding?'Tambah data':'Simpan perubahan')+'</button></div></form>');
  $('dialog').classList.add('editor-dialog');
 }
 async function saveRecord(form){
- if(!operator||!user||!db)throw new Error('Hanya operator terdaftar yang boleh mengubah data.');
+ await checkWriteAccess();
  const kind=form.dataset.kind, original=form.dataset.original, payload={}, fields=new FormData(form);
  for(const [key,,type] of EDITORS[kind].fields){
   const raw=String(fields.get(key)??'').trim(), optional=['optionalnumber','optionaldepot'].includes(type)||key==='catatan';
@@ -257,20 +290,22 @@ async function saveRecord(form){
  if(original)delete payload.id;
  const query=db.from('bbm_'+kind);
  const {data:updated,error}=await (original?query.update(payload).eq('id',original):query.insert(payload)).select('id').maybeSingle();
- if(error)throw new Error(error.code==='23503'?'Referensi terminal, SPBU, atau armada tidak valid.':error.code==='23505'?'ID atau kode sudah dipakai.':error.message);
+ if(error)throw new Error(saveError(error));
  if(!updated)throw new Error('Perubahan ditolak. Periksa izin akun operator.');
  $('dialog').close();$('dialog').classList.remove('editor-dialog');
- await refresh();$('announcement').textContent='Data '+EDITORS[kind].title+' berhasil '+(original?'diperbarui.':'ditambahkan.');
+ const reloaded=await refresh();notify('Berhasil! Data '+EDITORS[kind].title+' '+(original?'diperbarui':'ditambahkan')+' di Supabase.'+(reloaded?'':' Perubahan tersimpan, tetapi halaman belum berhasil memuat ulang data.'));
 }
 async function removeRecord(kind,id){
- if(!operator||!user||!db)return;
- const record=recordSet(kind).find(r=>r.id===id);if(!record)return;
- const name=record.nama||record.plat||record.id;
- if(!window.confirm('Hapus '+EDITORS[kind].title+' "'+name+'" secara permanen? Tindakan ini tidak bisa dibatalkan.'))return;
- const {data:deleted,error}=await db.from('bbm_'+kind).delete().eq('id',id).select('id').maybeSingle();
- if(error){openModal('Gagal menghapus','<p>'+safe(error.code==='23503'?'Data ini masih digunakan oleh data lain. Hapus atau pindahkan data yang terkait terlebih dahulu.':error.message)+'</p>');return;}
- if(!deleted){openModal('Gagal menghapus','<p>Tidak memiliki izin untuk menghapus data ini.</p>');return;}
- await refresh();$('announcement').textContent='Data berhasil dihapus.';
+ try{
+  await checkWriteAccess();
+  const record=recordSet(kind).find(r=>r.id===id);if(!record)throw new Error('Data tidak ditemukan. Muat ulang halaman.');
+  const name=record.nama||record.plat||record.id;
+  if(!window.confirm('Hapus '+EDITORS[kind].title+' "'+name+'" secara permanen? Tindakan ini tidak bisa dibatalkan.'))return;
+  const {data:deleted,error}=await db.from('bbm_'+kind).delete().eq('id',id).select('id').maybeSingle();
+  if(error)throw new Error(saveError(error));
+  if(!deleted)throw new Error('Database tidak menghapus data. Periksa hak akses operator.');
+  await refresh();notify('Data '+name+' berhasil dihapus dari Supabase.');
+ }catch(error){notify('Gagal menghapus: '+saveError(error),true);}
 }
 function depotList(){return '<section class="card table-card"><div class="management-head"><h2>Kelola terminal BBM dan stok</h2>'+addButton('depot')+'</div><div class="scroll"><table><thead><tr><th>Terminal</th><th>Wilayah</th><th>Alamat</th><th>Stok / Kapasitas</th>'+(operator?'<th>Aksi</th>':'')+'</tr></thead><tbody>'+data.depot.map(r=>'<tr><td>'+safe(r.nama)+'</td><td>'+safe(r.kab_kota||r.wilayah)+'</td><td class="cell-address">'+safe(r.alamat||'Belum diisi')+' <a href="'+safe(mapsUrl(r))+'" target="_blank" rel="noopener noreferrer">Maps</a></td><td>'+qty(r.stok)+' / '+qty(r.kapasitas)+'</td>'+(operator?'<td><div class="manage-actions">'+editButton('depot',r.id)+deleteButton('depot',r.id)+'</div></td>':'')+'</tr>').join('')+'</tbody></table></div></section>';}
 const columns=[['id','ID'],['tanggal','Tanggal'],['tujuan','Tujuan'],['produk','Jenis BBM'],['volume','Volume (KL)'],['driver','Driver'],['status','Status']];
@@ -346,7 +381,7 @@ function render(){
  if(view==='Armada')body=titleBlock(view,'Daftar truk tangki, pengemudi, dan status kesiapan.')+'<div class="management-head">'+addButton('armada')+'</div><div class="cards-view">'+data.armada.map(r=>'<article class="card"><div class="row"><h2>'+safe(r.plat)+'</h2>'+badge(r.status)+'</div><p>'+safe(r.driver)+'</p><p class="quiet">Kapasitas '+nf(r.kapasitas)+' KL</p>'+(operator?'<div class="manage-actions">'+editButton('armada',r.id)+deleteButton('armada',r.id)+'</div>':'')+'</article>').join('')+'</div>'+(data.armada.length?'':'<section class="card">Belum ada armada atau driver yang terdaftar.</section>');
  if(view==='SPBU')body=titleBlock(view,'SPBU Pertamina pilihan di 22 kabupaten/kota Jawa Tengah dan Jawa Timur. Kode dan alamat dari sumber peta bisnis serta ESDM.')+'<div class="management-head">'+addButton('spbu')+'</div><div class="cards-view">'+data.spbu.map(r=>'<article class="card"><h2>'+safe(r.nama)+'</h2><p class="quiet">'+safe(r.alamat||'Alamat belum diisi')+'</p><p class="quiet">Terminal pemasok: '+safe(data.depot.find(x=>x.id===r.depot_id)?.nama||'Belum ditetapkan')+'</p><div class="manage-actions"><button data-detail="'+safe(r.id)+'">Detail</button><a href="'+safe(mapsUrl(r))+'" target="_blank" rel="noopener noreferrer">Google Maps</a>'+editButton('spbu',r.id)+deleteButton('spbu',r.id)+'</div></article>').join('')+'</div>';
  if(view==='Laporan')body=titleBlock(view,'Ekspor data sesuai periode, pencarian, dan filter tabel.')+table();
- if(view==='Pengaturan')body=titleBlock(view,'Sesuaikan tampilan dan periksa koneksi data.')+'<section class="card table-card"><h2>Preferensi</h2><ul class="list"><li><div class="row"><span>Tampilan '+(document.documentElement.dataset.theme==='dark'?'gelap':'terang')+'</span><button data-action="theme">Ganti tema</button></div></li><li><div class="row"><span>'+safe(source)+'</span><button data-action="refresh">Muat ulang data</button></div></li><li><div class="row"><span>'+(operator?'Operator · Bisa tambah, edit, hapus data':'Akses baca referensi lokasi dan operasional')+'</span><button data-action="profile">Profil</button></div></li></ul></section>';
+ if(view==='Pengaturan')body=titleBlock(view,'Sesuaikan tampilan dan periksa koneksi data.')+'<section class="card table-card"><h2>Status sinkronisasi</h2><p class="quiet">Versi website: '+TEKS.versi+' · Project Supabase: mkgguiushbpjxwviboxv</p><p>Akun saat ini: <strong>'+safe(user?.email||'Tamu')+'</strong></p><p>Hak akses: <strong>'+(operator?'Operator (bisa menyimpan data)':'Hanya baca (tidak dapat menyimpan data)')+'</strong></p><p>Sumber data: <strong>'+safe(source)+'</strong></p><p class="quiet">'+safe(lastConnectionError||'')+'</p><button data-action="diagnose" class="primary">Periksa koneksi & status operator</button></section><section class="card table-card"><h2>Preferensi</h2><ul class="list"><li><div class="row"><span>Tampilan '+(document.documentElement.dataset.theme==='dark'?'gelap':'terang')+'</span><button data-action="theme">Ganti tema</button></div></li><li><div class="row"><span>'+safe(source)+'</span><button data-action="refresh">Muat ulang data</button></div></li><li><div class="row"><span>'+(operator?'Operator · Bisa tambah, edit, hapus data':'Akses baca referensi lokasi dan operasional')+'</span><button data-action="profile">Profil</button></div></li></ul></section>';
  $('content').innerHTML='<div class="fade">'+body+'</div>'+footer();
  tableRows();drawCharts();
  if(!reduceMotion&&view==='Dashboard'){
@@ -387,7 +422,12 @@ function loginScreen(){
 async function access(session){
  user=session?.user??null;operator=false;
  if(user&&db){
-  try{const {data:record}=await db.from('bbm_operator').select('user_id').eq('user_id',user.id).maybeSingle();operator=Boolean(record)}catch{}
+  try{
+   const {data:record,error}=await db.from('bbm_operator').select('user_id').eq('user_id',user.id).maybeSingle();
+   if(error)throw error;
+   operator=Boolean(record);
+   if(!operator)notify('Login berhasil, tetapi akun ini belum memiliki hak operator. Data hanya dapat dilihat.',true);
+  }catch(error){lastConnectionError=error?.message||'Gagal memeriksa operator';notify('Gagal memeriksa hak operator: '+lastConnectionError,true);}
  }
 }
 async function signIn(){
@@ -420,7 +460,7 @@ async function logout(){
  state={view:'Dashboard',period:'30',query:'',status:'',product:'',page:1,sort:'tanggal',direction:-1,seen:false};
  $('period').value='30';$('global-search').value='';$('profile-menu').open=false;loginScreen();$('username').focus();
 }
-document.addEventListener('click',event=>{
+document.addEventListener('click',async event=>{
  const control=event.target.closest('button');if(!control)return;
  if(control.dataset.view){setView(control.dataset.view);return;}
  if(control.dataset.detail){$('notifications').open=false;showDetail(control.dataset.detail);return;}
@@ -444,6 +484,15 @@ document.addEventListener('click',event=>{
  case 'next':state.page++;tableRows();document.querySelector('[data-action=prev]:not(:disabled)')?.focus();break;
  case 'seen':state.seen=true;header();$('notifications').open=false;break;
  case 'refresh':if(db){refresh()}else openModal('Koneksi tidak tersedia','<p>Tidak ada data lokal pengganti. Periksa koneksi Supabase.</p>');break;
+ case 'diagnose':{
+   try{
+    await checkWriteAccess();
+    const {data:probe,error}=await db.from('bbm_depot').select('id').limit(1);
+    if(error)throw error;
+    notify('Koneksi berhasil. Akun terautentikasi dan terdaftar sebagai operator. Database dapat dibaca; silakan coba simpan data.');
+   }catch(error){notify('Diagnostik: '+saveError(error),true);}
+   break;
+  }
  }
 });
 document.addEventListener('input',event=>{
@@ -463,7 +512,7 @@ document.addEventListener('submit',async event=>{
  if(!['login-form','forgot-form','recovery-form','crud-form'].includes(f.id))return;
  event.preventDefault();
  if(f.id==='login-form'){await signIn();return;}
- const msg=f.querySelector('.message'), button=f.querySelector('button'), fields=new FormData(f);
+ const msg=f.querySelector('.message'), button=f.querySelector('button[type="submit"]')||f.querySelector('button'), fields=new FormData(f);
  button.disabled=true;msg.textContent='Memproses…';
  try{
   if(!db)throw new Error('Koneksi Supabase tidak tersedia.');
@@ -477,7 +526,7 @@ document.addEventListener('submit',async event=>{
    await db.auth.signOut({scope:'local'});recovery=false;$('dialog').close();$('login-message').textContent='Kata sandi diperbarui. Silakan masuk.';
   }
   if(f.id==='crud-form')await saveRecord(f);
- }catch(e){msg.textContent=e.message;}
+ }catch(e){msg.textContent=saveError(e);if(f.id==='crud-form')notify('Gagal menyimpan: '+saveError(e),true);console.error('Dashboard BBM - operasi gagal:',e);}
  finally{button.disabled=false;}
 });
 addEventListener('resize',syncMenu);
