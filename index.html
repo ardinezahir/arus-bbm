@@ -30,7 +30,7 @@
 <section class="login" id="login">
  <div class="login-visual"><div class="brand" data-brand></div><div><div class="tag">Operasi distribusi energi</div><h1>Dashboard Monitoring Distribusi BBM</h1><p>Pantau pengiriman, stok depot, armada, dan layanan SPBU dari satu tempat.</p></div><small>Foto <a style="color:inherit" href="https://commons.wikimedia.org/wiki/File:MiRO5.jpg" target="_blank" rel="noopener">MiRO5 oleh Ikar.us</a> · <a style="color:inherit" href="https://creativecommons.org/licenses/by/2.0/de/deed.en" target="_blank" rel="noopener">CC BY 2.0 DE</a> · Dipotong dan diberi gradasi</small></div>
  <div class="login-content"><button class="theme-login" data-action="theme" aria-label="Ganti tema">◐</button>
- <form id="login-form" class="login-form" novalidate>
+ <form id="login-form" class="login-form" method="post" onsubmit="return false" novalidate>
  <div><h2>Masuk ke Arus BBM</h2><p class="quiet">Masuk menggunakan akun yang dibuat melalui Supabase Authentication.</p></div>
  <label>Email akun<input id="username" name="username" type="email" autocomplete="username" placeholder="nama@email.com" required></label>
  <label for="password">Kata sandi</label><div class="password"><input id="password" name="password" type="password" autocomplete="current-password" placeholder="Masukkan kata sandi" required><button type="button" id="see" aria-pressed="false" data-action="password">Lihat</button></div>
@@ -83,10 +83,10 @@ const TEKS = {
  wilayah:['Distribusi per provinsi','Porsi volume tiba berdasarkan provinsi SPBU tujuan.'],
  kapasitas:['Stok dan kapasitas terminal','Angka ditampilkan jika sudah dimasukkan operator. Tanpa data tidak dianggap nol.'],
  peta:['Lokasi referensi terminal dan SPBU','Alamat berdasarkan sumber publik; hubungan pemasok SPBU belum ditetapkan.'],
- footer:'Data referensi lokasi Pertamina, tidak mewakili data pengiriman atau stok resmi perusahaan.', versi:'2.1.1'
+ footer:'Data referensi lokasi Pertamina, tidak mewakili data pengiriman atau stok resmi perusahaan.', versi:'2.1.3'
 };
 // DATA kosong digunakan saat koneksi tidak tersedia; tidak ada data pengiriman atau armada simulasi.
-const CONFIG = {url:'https://mkgguiushbpjxwviboxv.supabase.co',key:'sb_publishable_PaIy6PzE7CNcYHLZrP3XOg_ssSIQ0dW',github:'https://github.com/ardinezahir/bbm-monitor'};
+const CONFIG = {url:'https://mkgguiushbpjxwviboxv.supabase.co',key:'sb_publishable_PaIy6PzE7CNcYHLZrP3XOg_ssSIQ0dW',github:'https://github.com/ardinezahir/arus-bbm'};
 const DATA = { produk:['Pertalite','Pertamax','Solar','Dexlite'], statuses:['Dikirim','Tiba','Tertunda'], depot:[], spbu:[], armada:[], pengiriman:[] };
 // Ikon SVG internal.
 const PATHS = {
@@ -268,7 +268,7 @@ function openEditor(kind,id=null){
  const existing=id?recordSet(kind).find(r=>r.id===id):null;
  if(id&&!existing){notify('Data tidak ditemukan. Silakan muat ulang.',true);return;}
  const adding=!existing, title=(adding?'Tambah ':'Edit ')+EDITORS[kind].title; if(kind==='pengiriman'&&data.armada.length===0){openModal('Armada belum ada','<p>Tambahkan armada beserta driver melalui menu Armada terlebih dahulu sebelum membuat pengiriman.</p>');return;}
- openModal(title,'<form id="crud-form" data-kind="'+kind+'" data-original="'+safe(id||'')+'"><p class="save-hint">Perubahan akan dikirim langsung ke Supabase, bukan hanya disimpan di browser.</p><p class="message save-message" role="alert"></p><div class="editor-grid">'+EDITORS[kind].fields.map(f=>editorField(kind,f,existing,adding)).join('')+'</div><div class="editor-actions"><button type="button" data-action="close">Batal</button><button class="primary" type="submit">'+(adding?'Tambah data':'Simpan perubahan')+'</button></div></form>');
+ openModal(title,'<form id="crud-form" method="post" onsubmit="return false" data-kind="'+kind+'" data-original="'+safe(id||'')+'"><p class="save-hint">Perubahan akan dikirim langsung ke Supabase, bukan hanya disimpan di browser.</p><p class="message save-message" role="alert"></p><div class="editor-grid">'+EDITORS[kind].fields.map(f=>editorField(kind,f,existing,adding)).join('')+'</div><div class="editor-actions"><button type="button" data-action="close">Batal</button><button class="primary" type="submit">'+(adding?'Tambah data':'Simpan perubahan')+'</button></div></form>');
  $('dialog').classList.add('editor-dialog');
 }
 async function saveRecord(form){
@@ -447,12 +447,12 @@ async function signIn(){
  finally{button.disabled=false;button.textContent='Masuk';}
 }
 function forgot(){
- openModal('Atur ulang kata sandi','<p>Masukkan email akun yang terdaftar di Supabase untuk menerima tautan pemulihan.</p><form id="forgot-form"><label>Email akun<input required name="email" type="email" autocomplete="email"></label><button class="primary">Kirim tautan pemulihan</button><p class="message" role="status"></p></form>');
+ openModal('Atur ulang kata sandi','<p>Masukkan email akun yang terdaftar di Supabase untuk menerima tautan pemulihan.</p><form id="forgot-form" method="post" onsubmit="return false"><label>Email akun<input required name="email" type="email" autocomplete="email"></label><button class="primary">Kirim tautan pemulihan</button><p class="message" role="status"></p></form>');
 }
 $('dialog').addEventListener('close',async()=>{if(recovery){recovery=false;await db.auth.signOut({scope:'local'});}});
 function recoveryForm(){
  recovery=true;loginScreen();
- openModal('Kata sandi baru','<form id="recovery-form"><label>Kata sandi baru<input type="password" name="password" autocomplete="new-password" minlength="8" required></label><button class="primary">Simpan kata sandi</button><p class="message" role="status"></p></form>');
+ openModal('Kata sandi baru','<form id="recovery-form" method="post" onsubmit="return false"><label>Kata sandi baru<input type="password" name="password" autocomplete="new-password" minlength="8" required></label><button class="primary">Simpan kata sandi</button><p class="message" role="status"></p></form>');
 }
 async function logout(){
  if(user&&db){const {error}=await db.auth.signOut({scope:'local'});if(error){openModal('Keluar gagal','<p>Coba lagi saat koneksi tersedia.</p>');return;}}
@@ -507,26 +507,31 @@ document.addEventListener('change',event=>{
  if(id==='period'){state.period=value;state.page=1;state.seen=false;render();}
  if(id==='status-filter'||id==='product-filter'){state[id==='status-filter'?'status':'product']=value;state.page=1;tableRows();}
 });
+// Cegah submit form HTML biasa (GET/POST) termasuk jika nama form berubah.
+// Data operator hanya boleh dikirim via API Supabase setelah autentikasi.
+document.addEventListener('submit', event=>event.preventDefault(), true);
 document.addEventListener('submit',async event=>{
  const f=event.target;
- if(!['login-form','forgot-form','recovery-form','crud-form'].includes(f.id))return;
+ // Jangan gunakan properti f.id: input name="id" dapat menimpanya.
+ const formId=f.getAttribute('id');
+ if(!['login-form','forgot-form','recovery-form','crud-form'].includes(formId))return;
  event.preventDefault();
- if(f.id==='login-form'){await signIn();return;}
+ if(formId==='login-form'){await signIn();return;}
  const msg=f.querySelector('.message'), button=f.querySelector('button[type="submit"]')||f.querySelector('button'), fields=new FormData(f);
  button.disabled=true;msg.textContent='Memproses…';
  try{
   if(!db)throw new Error('Koneksi Supabase tidak tersedia.');
-  if(f.id==='forgot-form'){
+  if(formId==='forgot-form'){
    if(location.protocol==='file:')throw new Error('Buka situs HTTPS untuk menerima tautan pemulihan.');
    const {error}=await db.auth.resetPasswordForEmail(fields.get('email'),{redirectTo:location.origin+location.pathname});if(error)throw error;
    msg.textContent='Jika akun terdaftar, periksa kotak masuk email operator.';
   }
-  if(f.id==='recovery-form'){
+  if(formId==='recovery-form'){
    const {error}=await db.auth.updateUser({password:fields.get('password')});if(error)throw error;
    await db.auth.signOut({scope:'local'});recovery=false;$('dialog').close();$('login-message').textContent='Kata sandi diperbarui. Silakan masuk.';
   }
-  if(f.id==='crud-form')await saveRecord(f);
- }catch(e){msg.textContent=saveError(e);if(f.id==='crud-form')notify('Gagal menyimpan: '+saveError(e),true);console.error('Dashboard BBM - operasi gagal:',e);}
+  if(formId==='crud-form')await saveRecord(f);
+ }catch(e){msg.textContent=saveError(e);if(formId==='crud-form')notify('Gagal menyimpan: '+saveError(e),true);console.error('Dashboard BBM - operasi gagal:',e);}
  finally{button.disabled=false;}
 });
 addEventListener('resize',syncMenu);
